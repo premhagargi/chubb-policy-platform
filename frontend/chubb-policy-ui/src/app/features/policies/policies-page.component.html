@@ -1,0 +1,44 @@
+<header class="page-header">
+  <h1>Chubb APAC Policy Management</h1>
+  <app-theme-toggle />
+</header>
+
+<app-policy-summary-cards [summary]="state.summary()" />
+
+<app-policy-filters [filter]="state.filter()" (filterChange)="onFilterChange($event)" />
+
+<div class="toolbar">
+  <button
+    type="button"
+    class="flag-btn"
+    [disabled]="selectedIds().size === 0 || flagInFlight()"
+    (click)="flagSelected()"
+  >
+    Flag {{ selectedIds().size || '' }} selected for review
+  </button>
+</div>
+
+@switch (state.status()) {
+  @case ('loading') {
+    <app-loading-spinner />
+  }
+  @case ('error') {
+    <app-error-banner [message]="state.error()?.title ?? 'Unable to load policies.'" />
+  }
+  @case ('success') {
+    @if (state.items().length === 0) {
+      <app-empty-state />
+    } @else {
+      <app-policy-table
+        [items]="state.items()"
+        [sort]="state.filter().sort"
+        [page]="state.filter().page"
+        [totalPages]="state.totalPages()"
+        [selectedIds]="selectedIds()"
+        (sortChange)="onSortChange($event)"
+        (pageChange)="onPageChange($event)"
+        (selectionChange)="onSelectionChange($event)"
+      />
+    }
+  }
+}

@@ -1,0 +1,59 @@
+<div class="table-wrapper">
+  <table>
+    <caption class="sr-only">Policies matching the current filters</caption>
+    <thead>
+      <tr>
+        <th scope="col">
+          <input
+            type="checkbox"
+            aria-label="Select all policies on this page"
+            [checked]="allOnPageSelected"
+            (change)="toggleAllOnPage($any($event.target).checked)"
+          />
+        </th>
+        @for (col of columns; track col.field) {
+          <th scope="col" [attr.aria-sort]="ariaSortFor(col.field)">
+            <button
+              type="button"
+              class="sort-btn"
+              (click)="onHeaderActivate(col.field)"
+            >
+              {{ col.label }}
+              @if (sortField === col.field) {
+                <span aria-hidden="true">{{ sortDescending ? '▼' : '▲' }}</span>
+              }
+            </button>
+          </th>
+        }
+      </tr>
+    </thead>
+    <tbody>
+      @for (policy of items; track policy.id) {
+        <tr [class.flagged]="policy.flaggedForReview">
+          <td>
+            <input
+              type="checkbox"
+              [attr.aria-label]="'Select policy ' + policy.policyNumber"
+              [checked]="isSelected(policy.id)"
+              (change)="toggleRow(policy.id, $any($event.target).checked)"
+            />
+          </td>
+          <td>{{ policy.policyNumber }}</td>
+          <td>{{ policy.policyholderName }}</td>
+          <td>{{ policy.lineOfBusiness }}</td>
+          <td>{{ policy.status }}</td>
+          <td>{{ formatCurrency(policy.premiumAmount, policy.currency) }}</td>
+          <td>{{ policy.effectiveDate }}</td>
+          <td>{{ policy.expiryDate }}</td>
+          <td>{{ policy.region }}</td>
+        </tr>
+      }
+    </tbody>
+  </table>
+</div>
+
+<nav class="pagination" aria-label="Policy list pagination">
+  <button type="button" [disabled]="page <= 1" (click)="pageChange.emit(page - 1)">Previous</button>
+  <span aria-live="polite">Page {{ page }} of {{ totalPages || 1 }}</span>
+  <button type="button" [disabled]="page >= totalPages" (click)="pageChange.emit(page + 1)">Next</button>
+</nav>
