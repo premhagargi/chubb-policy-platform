@@ -1,0 +1,266 @@
+openapi: 3.0.3
+info:
+  title: Chubb APAC Policy Management Platform API
+  description: >
+    BFF API for managing insurance policies across Chubb APAC regions. Contract-first:
+    this document is the source of truth and was written before implementation.
+  version: 1.0.0
+servers:
+  - url: /api/v1
+
+tags:
+  - name: Policies
+
+paths:
+  /policies:
+    get:
+      tags: [Policies]
+      summary: List policies with pagination, sorting, filtering, and free-text search
+      operationId: listPolicies
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+        - $ref: '#/components/parameters/Sort'
+        - name: status
+          in: query
+          schema: { $ref: '#/components/schemas/PolicyStatus' }
+        - name: lineOfBusiness
+          in: query
+          schema: { $ref: '#/components/schemas/LineOfBusiness' }
+        - name: region
+          in: query
+          schema: { type: string }
+          description: APAC operational region, e.g. "Singapore"
+        - name: effectiveDateFrom
+          in: query
+          schema: { type: string, format: date }
+        - name: effectiveDateTo
+          in: query
+          schema: { type: string, format: date }
+        - name: search
+          in: query
+          description: Free-text search across policyNumber, policyholderName, underwriter
+          schema: { type: string }
+      responses:
+        '200':
+          description: Paged list of policies
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PagedPolicyResult' }
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /policies/{id}:
+    get:
+      tags: [Policies]
+      summary: Retrieve a single policy by id
+      operationId: getPolicyById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: The requested policy
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Policy' }
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /policies/flag:
+    patch:
+      tags: [Policies]
+      summary: Bulk-flag policies for review
+      operationId: flagPolicies
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/FlagPoliciesRequest' }
+      responses:
+        '200':
+          description: >
+            Flag applied to whichever of the supplied ids exist. Non-existent ids are
+            silently omitted from flaggedPolicyIds rather than causing a 404 — the
+            response reports exactly which ids were affected so the caller can detect
+            partial success.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/FlagPoliciesResponse' }
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /policies/summary:
+    get:
+      tags: [Policies]
+      summary: Aggregated policy statistics, respecting the same filters as the list endpoint
+      operationId: getPolicySummary
+      parameters:
+        - name: status
+          in: query
+          schema: { $ref: '#/components/schemas/PolicyStatus' }
+        - name: lineOfBusiness
+          in: query
+          schema: { $ref: '#/components/schemas/LineOfBusiness' }
+        - name: region
+          in: query
+          schema: { type: string }
+        - name: effectiveDateFrom
+          in: query
+          schema: { type: string, format: date }
+        - name: effectiveDateTo
+          in: query
+          schema: { type: string, format: date }
+        - name: search
+          in: query
+          schema: { type: string }
+      responses:
+        '200':
+          description: Aggregated statistics for the filtered policy set
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PolicySummary' }
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+components:
+  parameters:
+    Page:
+      name: page
+      in: query
+      schema: { type: integer, minimum: 1, default: 1 }
+    Size:
+      name: size
+      in: query
+      schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+    Sort:
+      name: sort
+      in: query
+      description: >
+        "<field>,<asc|desc>", e.g. "premiumAmount,desc". Allowed fields: policyNumber,
+        policyholderName, lineOfBusiness, status, premiumAmount, effectiveDate,
+        expiryDate, region, underwriter, createdAt. Unknown fields are rejected with 400.
+      schema: { type: string, default: "createdAt,desc" }
+
+  responses:
+    BadRequest:
+      description: Validation error
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+    ServerError:
+      description: Unexpected server error
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+
+  schemas:
+    PolicyStatus:
+      type: string
+      enum: [Active, Expired, Pending, Cancelled]
+
+    LineOfBusiness:
+      type: string
+      enum: [Property, Casualty, A&H, Marine]
+
+    Currency:
+      type: string
+      enum: [USD, SGD, HKD, AUD, JPY, THB]
+
+    Policy:
+      type: object
+      required:
+        - id, policyNumber, policyholderName, lineOfBusiness, status, premiumAmount,
+          currency, effectiveDate, expiryDate, region, underwriter, flaggedForReview,
+          createdAt, updatedAt
+      properties:
+        id: { type: string, format: uuid }
+        policyNumber: { type: string, example: "PCL-482913" }
+        policyholderName: { type: string }
+        lineOfBusiness: { $ref: '#/components/schemas/LineOfBusiness' }
+        status: { $ref: '#/components/schemas/PolicyStatus' }
+        premiumAmount: { type: number, format: decimal, minimum: 1000, maximum: 5000000 }
+        currency: { $ref: '#/components/schemas/Currency' }
+        effectiveDate: { type: string, format: date }
+        expiryDate: { type: string, format: date }
+        region: { type: string, example: "Singapore" }
+        underwriter: { type: string }
+        flaggedForReview: { type: boolean, default: false }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    PagedPolicyResult:
+      type: object
+      required: [items, page, size, totalCount, totalPages]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/Policy' }
+        page: { type: integer }
+        size: { type: integer }
+        totalCount: { type: integer }
+        totalPages: { type: integer }
+
+    FlagPoliciesRequest:
+      type: object
+      required: [policyIds]
+      properties:
+        policyIds:
+          type: array
+          minItems: 1
+          maxItems: 500
+          items: { type: string, format: uuid }
+
+    FlagPoliciesResponse:
+      type: object
+      required: [flaggedPolicyIds, flaggedCount]
+      properties:
+        flaggedPolicyIds:
+          type: array
+          items: { type: string, format: uuid }
+        flaggedCount: { type: integer }
+
+    PolicySummary:
+      type: object
+      required: [countsByStatus, premiumByLineOfBusiness, expiringSoonCount]
+      properties:
+        countsByStatus:
+          type: object
+          additionalProperties: { type: integer }
+          example: { Active: 120, Expired: 40, Pending: 30, Cancelled: 10 }
+        premiumByLineOfBusiness:
+          type: object
+          additionalProperties: { type: number, format: decimal }
+          example: { Property: 1500000.00, Casualty: 900000.00 }
+        expiringSoonCount:
+          type: integer
+          description: Active policies with expiryDate within the next 30 days
+
+    ErrorResponse:
+      type: object
+      required: [type, title, status, correlationId]
+      properties:
+        type: { type: string, example: "https://httpstatuses.io/400" }
+        title: { type: string, example: "One or more validation errors occurred." }
+        status: { type: integer, example: 400 }
+        correlationId: { type: string, format: uuid }
+        errors:
+          type: object
+          additionalProperties:
+            type: array
+            items: { type: string }
