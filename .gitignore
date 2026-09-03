@@ -1,0 +1,22 @@
+## .NET
+bin/
+obj/
+*.user
+*.suo
+.vs/
+
+## Node / Angular
+node_modules/
+dist/
+.angular/
+npm-debug.log*
+
+## Env
+.env
+*.local
+
+## OS / IDE
+.DS_Store
+Thumbs.db
+.idea/
+*.swp
