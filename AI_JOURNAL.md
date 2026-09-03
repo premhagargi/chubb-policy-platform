@@ -97,3 +97,33 @@ running docker-composed stack, with the actual measured p95 recorded in
 **Why:** It's a named, numeric requirement in the spec, not a vague performance
 aspiration — an honestly reported measured number is worth more in the panel Q&A than an
 unverified claim of meeting it.
+
+## npm install failure on Angular 21 scaffold — 2026-09-03
+**Suggested:** N/A — this was a real tooling failure hit while scaffolding, not an AI
+suggestion.
+**Decision:** Diagnosed and fixed, not overridden.
+**Why:** `ng new` followed by `npm install` failed with `Cannot read properties of null
+(reading 'edgesOut')` inside npm's arborist dependency resolver — a known npm bug
+triggered by the new Angular 21 default toolchain's vitest peer-dependency graph.
+`npm install --legacy-peer-deps` resolved it. The same flag is used in the frontend
+Dockerfile for the same reason. Verified: `npm install --legacy-peer-deps`, `ng test`,
+and `ng build --configuration production` all ran successfully in this environment
+(unlike the backend, the frontend genuinely was built and tested here, not just
+authored).
+
+## Signal ordering bug in ThemeService — 2026-09-03
+**Suggested:** N/A — caught by actually running the frontend test suite, not proposed
+and accepted blind.
+**Decision:** Fixed via two changes, not just patched around.
+**Why:** First bug: a constructor-injected `StorageService` (`constructor(private
+storage: StorageService)`) was read from a class-field initializer
+(`readonly preference = signal(this.readInitialPreference())`) — under real ES class
+field semantics, field initializers run before the constructor body assigns parameter
+properties, so `this.storage` was `undefined` at that point. Fixed by switching to an
+`inject(StorageService)` field declared first in the class, which has no such ordering
+hazard. Second bug: `resolvedTheme` was a plain `signal()` updated from inside an
+`effect()`, and Angular effects run asynchronously (batched into the next reactivity
+flush) — a test calling `setPreference()` then immediately asserting on
+`resolvedTheme()` saw the stale value. Fixed by making `resolvedTheme` a `computed()`
+instead, which re-evaluates synchronously on read. Both were caught only because `ng
+test` was actually run against real code, not inferred from reading the source.
