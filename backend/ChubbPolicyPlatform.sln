@@ -1,0 +1,52 @@
+
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.11.35222.181
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ChubbPolicyPlatform.Domain", "src\ChubbPolicyPlatform.Domain\ChubbPolicyPlatform.Domain.csproj", "{88DB3F32-45D4-4DB9-97CA-FE4FE8D16C86}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ChubbPolicyPlatform.Application", "src\ChubbPolicyPlatform.Application\ChubbPolicyPlatform.Application.csproj", "{74BDBFBD-EC05-4C6B-846D-ED292918DE64}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ChubbPolicyPlatform.Infrastructure", "src\ChubbPolicyPlatform.Infrastructure\ChubbPolicyPlatform.Infrastructure.csproj", "{11C37481-2F37-4C66-8647-B9DDE9381669}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ChubbPolicyPlatform.Api", "src\ChubbPolicyPlatform.Api\ChubbPolicyPlatform.Api.csproj", "{E22D01E7-6414-4A6F-8B60-DBEE61B19A5D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ChubbPolicyPlatform.UnitTests", "tests\ChubbPolicyPlatform.UnitTests\ChubbPolicyPlatform.UnitTests.csproj", "{EAF5889F-8788-462F-9B63-D9D6BA37F069}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ChubbPolicyPlatform.IntegrationTests", "tests\ChubbPolicyPlatform.IntegrationTests\ChubbPolicyPlatform.IntegrationTests.csproj", "{E5ABCEAF-2254-4323-A0AD-E89BDE190728}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{88DB3F32-45D4-4DB9-97CA-FE4FE8D16C86}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{88DB3F32-45D4-4DB9-97CA-FE4FE8D16C86}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{88DB3F32-45D4-4DB9-97CA-FE4FE8D16C86}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{88DB3F32-45D4-4DB9-97CA-FE4FE8D16C86}.Release|Any CPU.Build.0 = Release|Any CPU
+		{74BDBFBD-EC05-4C6B-846D-ED292918DE64}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{74BDBFBD-EC05-4C6B-846D-ED292918DE64}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{74BDBFBD-EC05-4C6B-846D-ED292918DE64}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{74BDBFBD-EC05-4C6B-846D-ED292918DE64}.Release|Any CPU.Build.0 = Release|Any CPU
+		{11C37481-2F37-4C66-8647-B9DDE9381669}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{11C37481-2F37-4C66-8647-B9DDE9381669}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{11C37481-2F37-4C66-8647-B9DDE9381669}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{11C37481-2F37-4C66-8647-B9DDE9381669}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E22D01E7-6414-4A6F-8B60-DBEE61B19A5D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E22D01E7-6414-4A6F-8B60-DBEE61B19A5D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E22D01E7-6414-4A6F-8B60-DBEE61B19A5D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E22D01E7-6414-4A6F-8B60-DBEE61B19A5D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EAF5889F-8788-462F-9B63-D9D6BA37F069}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EAF5889F-8788-462F-9B63-D9D6BA37F069}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EAF5889F-8788-462F-9B63-D9D6BA37F069}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EAF5889F-8788-462F-9B63-D9D6BA37F069}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E5ABCEAF-2254-4323-A0AD-E89BDE190728}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E5ABCEAF-2254-4323-A0AD-E89BDE190728}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E5ABCEAF-2254-4323-A0AD-E89BDE190728}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E5ABCEAF-2254-4323-A0AD-E89BDE190728}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
