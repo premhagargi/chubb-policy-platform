@@ -29,8 +29,7 @@ paths:
           schema: { $ref: '#/components/schemas/LineOfBusiness' }
         - name: region
           in: query
-          schema: { type: string }
-          description: APAC operational region, e.g. "Singapore"
+          schema: { $ref: '#/components/schemas/Region' }
         - name: effectiveDateFrom
           in: query
           schema: { type: string, format: date }
@@ -112,7 +111,7 @@ paths:
           schema: { $ref: '#/components/schemas/LineOfBusiness' }
         - name: region
           in: query
-          schema: { type: string }
+          schema: { $ref: '#/components/schemas/Region' }
         - name: effectiveDateFrom
           in: query
           schema: { type: string, format: date }
@@ -182,6 +181,10 @@ components:
       type: string
       enum: [USD, SGD, HKD, AUD, JPY, THB]
 
+    Region:
+      type: string
+      enum: [Singapore, "Hong Kong", Australia, Japan, Thailand, Indonesia, Malaysia, Philippines]
+
     Policy:
       type: object
       required:
@@ -198,7 +201,7 @@ components:
         currency: { $ref: '#/components/schemas/Currency' }
         effectiveDate: { type: string, format: date }
         expiryDate: { type: string, format: date }
-        region: { type: string, example: "Singapore" }
+        region: { $ref: '#/components/schemas/Region' }
         underwriter: { type: string }
         flaggedForReview: { type: boolean, default: false }
         createdAt: { type: string, format: date-time }
