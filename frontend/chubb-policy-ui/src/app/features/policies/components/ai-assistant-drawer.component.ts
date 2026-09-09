@@ -18,11 +18,15 @@ import { IconComponent } from '../../../shared/ui/icon.component';
 import { MarkdownTextComponent } from '../../../shared/ui/markdown-text.component';
 
 interface Turn {
-  role: 'user' | 'assistant';
+  role: 'user' | 'assistant' | 'flag-action';
   text: string;
   /** Set once the answer finishes, for the provenance line under it. */
   meta?: string;
   failed?: boolean;
+  /** Flag-action specific fields. */
+  flagPolicyIds?: string[];
+  flagPolicyLabel?: string;
+  flagStatus?: 'pending' | 'confirming' | 'in-flight' | 'done' | 'dismissed';
 }
 
 /**
@@ -36,6 +40,12 @@ interface Turn {
  * phases: pulsating dots while the model is still thinking, then live text with a
  * caret as tokens land. Non-modal by design - an assistant beside the data is
  * more useful than one that blocks it, so there is no scrim and no focus trap.
+ *
+ * Flagging tool-use: when the AI mentions a policy that should be flagged, or when
+ * the user explicitly asks to flag a policy, the copilot shows an inline action
+ * card with confirm/dismiss buttons. After confirmation, it calls the flagRequest
+ * output so the parent page can trigger the actual mutation via PolicyStateService.
+ * A tick mark and success message appear once the flag is complete.
  */
 @Component({
   standalone: true,
@@ -114,6 +124,86 @@ interface Turn {
                     >
                       {{ turn.text }}
                     </p>
+                  </div>
+                } @else if (turn.role === 'flag-action') {
+                  <!-- Flag action card -->
+                  <div class="rounded-lg border px-3 py-2.5" style="border-color: var(--border); background: var(--surface);">
+                    @if (turn.flagStatus === 'pending' || turn.flagStatus === 'confirming') {
+                      <!-- Pre-confirmation state -->
+                      <div class="flex items-start gap-2.5">
+                        <span
+                          class="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full"
+                          style="background: var(--flag-bg); color: var(--flag);"
+                        >
+                          <app-icon name="flag" [size]="13" />
+                        </span>
+                        <div class="min-w-0 flex-1">
+                          <p class="text-[13px] font-medium" style="color: var(--text);">
+                            Flag {{ turn.flagPolicyLabel }}
+                          </p>
+                          <p class="mt-0.5 text-[11px]" style="color: var(--text-muted);">
+                            This will flag the policy for review by the operations team.
+                          </p>
+                          <div class="mt-2 flex gap-2">
+                            <button
+                              type="button"
+                              class="flex h-7 items-center gap-1 rounded-md px-2.5 text-[12px] font-medium transition-opacity hover:opacity-90"
+                              style="background: var(--brand); color: var(--brand-contrast);"
+                              [disabled]="flagInFlight()"
+                              (click)="confirmFlag($index)"
+                            >
+                              <app-icon name="flag" [size]="12" />
+                              {{ turn.flagStatus === 'confirming' ? 'Confirm flag' : 'Flag policy' }}
+                            </button>
+                            <button
+                              type="button"
+                              class="flex h-7 items-center rounded-md border px-2.5 text-[12px] font-medium transition-colors hover:bg-[var(--surface-hover)]"
+                              style="border-color: var(--border); color: var(--text-muted);"
+                              (click)="dismissFlag($index)"
+                            >
+                              Dismiss
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    } @else if (turn.flagStatus === 'in-flight') {
+                      <!-- In-progress state -->
+                      <div class="flex items-center gap-2.5">
+                        <svg class="h-4 w-4 shrink-0 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true" style="color: var(--text-muted);">
+                          <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2.5" opacity="0.25" />
+                          <path d="M21 12a9 9 0 0 0-9-9" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" />
+                        </svg>
+                        <p class="text-[13px]" style="color: var(--text-muted);">
+                          Flagging {{ turn.flagPolicyLabel }}…
+                        </p>
+                      </div>
+                    } @else if (turn.flagStatus === 'done') {
+                      <!-- Success state -->
+                      <div class="flex items-center gap-2.5">
+                        <span
+                          class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full"
+                          style="background: #e8f5e9; color: #2e7d32;"
+                        >
+                          <app-icon name="check" [size]="14" />
+                        </span>
+                        <div class="min-w-0 flex-1">
+                          <p class="text-[13px] font-medium" style="color: var(--text);">
+                            {{ turn.flagPolicyLabel }} flagged
+                          </p>
+                          <p class="mt-0.5 text-[11px]" style="color: var(--text-muted);">
+                            Flagged for review · visible to the operations team
+                          </p>
+                        </div>
+                      </div>
+                    } @else if (turn.flagStatus === 'dismissed') {
+                      <!-- Dismissed state -->
+                      <div class="flex items-center gap-2 opacity-60">
+                        <app-icon name="close" [size]="14" />
+                        <p class="text-[12px]" style="color: var(--text-muted);">
+                          Flag action dismissed
+                        </p>
+                      </div>
+                    }
                   </div>
                 } @else if (turn.text) {
                   <!-- Only once there is something to show: an assistant turn
@@ -276,13 +366,27 @@ export class AiAssistantDrawerComponent {
   readonly open = input(false);
   readonly filter = input.required<PolicyFilter>();
 
+  /** IDs of policies already flagged — used to check post-flag state. */
+  readonly flaggedIds = input<ReadonlySet<string>>(new Set());
+
+  /** True while a flag mutation is in flight. */
+  readonly flagInFlight = input(false);
+
   readonly close = output<void>();
+
+  /** Emitted when the user confirms a flag action inside the copilot. The parent
+   *  page wires this to PolicyStateService.flagPolicies(). */
+  readonly flagRequest = output<string[]>();
 
   @ViewChild('thread') private thread?: ElementRef<HTMLElement>;
 
   protected prompt = '';
   protected readonly turns = signal<Turn[]>([]);
   protected readonly streaming = signal(false);
+
+  /** Track which flag-action turn is currently in flight so we can update it
+   *  when the parent reports completion. */
+  private activeFlagTurnIndex: number | null = null;
 
   /** Request sent, no token rendered yet - the pulsating-dots phase. */
   protected readonly thinking = computed(() => {
@@ -347,6 +451,13 @@ export class AiAssistantDrawerComponent {
   protected ask(question: string): void {
     if (this.streaming()) return;
 
+    // Check if this is an explicit flag request from the user.
+    const flagIntent = this.parseFlagIntent(question);
+    if (flagIntent) {
+      this.handleFlagIntent(question, flagIntent);
+      return;
+    }
+
     this.turns.update((list) => [
       ...list,
       { role: 'user', text: question },
@@ -376,6 +487,9 @@ export class AiAssistantDrawerComponent {
           } else {
             const elapsed = Math.round(performance.now() - startedAt);
             this.setMeta(`streamed · ${elapsed} ms`);
+
+            // After a successful answer, check if the response suggests flagging.
+            this.maybeOfferFlagFromAnswer(last.text);
           }
         }
 
@@ -401,7 +515,135 @@ export class AiAssistantDrawerComponent {
     this.subscription?.unsubscribe();
     this.subscription = null;
     this.streaming.set(false);
+    this.activeFlagTurnIndex = null;
     this.turns.set([]);
+  }
+
+  /** User clicked "Flag policy" on a flag-action card. */
+  protected confirmFlag(turnIndex: number): void {
+    const turn = this.turns()[turnIndex];
+    if (!turn || turn.role !== 'flag-action' || !turn.flagPolicyIds?.length) return;
+
+    // Check if already flagged.
+    const alreadyFlagged = turn.flagPolicyIds.every((id) => this.flaggedIds().has(id));
+    if (alreadyFlagged) {
+      this.updateFlagTurn(turnIndex, {
+        flagStatus: 'done',
+        text: `${turn.flagPolicyLabel} is already flagged.`,
+      });
+      return;
+    }
+
+    this.activeFlagTurnIndex = turnIndex;
+    this.updateFlagTurn(turnIndex, { flagStatus: 'in-flight' });
+    this.flagRequest.emit(turn.flagPolicyIds);
+    this.scrollToBottom();
+
+    // Watch for flagInFlight to go from true -> false, meaning the mutation finished.
+    this.waitForFlagCompletion(turnIndex);
+  }
+
+  /** User clicked "Dismiss" on a flag-action card. */
+  protected dismissFlag(turnIndex: number): void {
+    this.updateFlagTurn(turnIndex, { flagStatus: 'dismissed' });
+    this.scrollToBottom();
+  }
+
+  /**
+   * Called by the parent when flagInFlight changes. Since Angular signals
+   * don't have a watch API from outside, we poll briefly.
+   */
+  private waitForFlagCompletion(turnIndex: number): void {
+    const check = () => {
+      if (!this.flagInFlight()) {
+        this.updateFlagTurn(turnIndex, { flagStatus: 'done' });
+        this.activeFlagTurnIndex = null;
+        this.scrollToBottom();
+      } else {
+        setTimeout(check, 200);
+      }
+    };
+    // Start checking after a short delay to let the mutation start.
+    setTimeout(check, 300);
+  }
+
+  // --- flag intent handling ---
+
+  /**
+   * Detect if the user is asking to flag a policy by number or ID.
+   * Returns the matched policy number/ID string, or null.
+   */
+  private parseFlagIntent(question: string): string | null {
+    const lower = question.toLowerCase();
+    // Match patterns like "flag PCL-100219" or "flag policy PCL-100219"
+    const flagMatch = lower.match(/^(?:flag|mark|flag\s+policy|mark\s+policy)\s+([a-z0-9-]+)/i);
+    if (flagMatch) return flagMatch[1].toUpperCase();
+    return null;
+  }
+
+  /** Handle an explicit "flag <policy>" request. */
+  private handleFlagIntent(question: string, policyRef: string): void {
+    // Add user message.
+    this.turns.update((list) => [
+      ...list,
+      { role: 'user', text: question },
+      {
+        role: 'flag-action' as const,
+        text: '',
+        flagPolicyIds: [policyRef],
+        flagPolicyLabel: policyRef,
+        flagStatus: 'confirming' as const,
+      },
+    ]);
+    this.scrollToBottom();
+  }
+
+  /**
+   * After a streamed answer completes, detect if the AI is recommending a flag
+   * and offer a flag action card. Looks for patterns like "should be flagged"
+   * or "recommend flagging" paired with a policy number.
+   */
+  private maybeOfferFlagFromAnswer(answerText: string): void {
+    const flagPhrases = [
+      'should be flagged',
+      'recommend flagging',
+      'flag this policy',
+      'flag for review',
+      'warrants review',
+      'needs attention',
+      'recommend marking for review',
+      'suggest flagging',
+    ];
+
+    const lower = answerText.toLowerCase();
+    const hasFlagSuggestion = flagPhrases.some((phrase) => lower.includes(phrase));
+    if (!hasFlagSuggestion) return;
+
+    // Try to extract policy numbers from the answer.
+    const policyMatches = answerText.match(/\b(PCL-\d{4,})\b/gi);
+    if (!policyMatches || policyMatches.length === 0) return;
+
+    // Deduplicate and filter out already-flagged policies.
+    const unique = [...new Set(policyMatches.map((m) => m.toUpperCase()))];
+    const unflagged = unique.filter((id) => !this.flaggedIds().has(id));
+    if (unflagged.length === 0) return;
+
+    const label =
+      unflagged.length === 1
+        ? unflagged[0]
+        : `${unflagged.length} policies`;
+
+    this.turns.update((list) => [
+      ...list,
+      {
+        role: 'flag-action',
+        text: '',
+        flagPolicyIds: unflagged,
+        flagPolicyLabel: label,
+        flagStatus: 'pending',
+      },
+    ]);
+    this.scrollToBottom();
   }
 
   // --- internals ---
@@ -429,6 +671,16 @@ export class AiAssistantDrawerComponent {
       const next = [...list];
       const last = next.at(-1);
       if (last?.role === 'assistant') next[next.length - 1] = { ...last, meta };
+      return next;
+    });
+  }
+
+  private updateFlagTurn(index: number, updates: Partial<Turn>): void {
+    this.turns.update((list) => {
+      const next = [...list];
+      if (next[index]?.role === 'flag-action') {
+        next[index] = { ...next[index], ...updates };
+      }
       return next;
     });
   }

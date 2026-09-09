@@ -129,6 +129,11 @@ def build_portfolio_context(
             "Total premium by line of business: "
             + _pairs({k: _money(v) for k, v in summary.premium_by_line_of_business.items()})
         )
+    if summary.premium_by_region:
+        lines.append(
+            "Total premium by region: "
+            + _pairs({k: _money(v) for k, v in summary.premium_by_region.items()})
+        )
 
     if sample:
         lines.append("")

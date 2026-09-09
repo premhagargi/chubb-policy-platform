@@ -1,7 +1,9 @@
-import { ChangeDetectionStrategy, Component, OnInit, computed, inject, input, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, computed, inject, input, signal, Injector } from '@angular/core';
+import { forkJoin } from 'rxjs';
 import { Policy } from '../../core/models/policy.model';
-import { PolicyFilter } from '../../core/models/policy-filter.model';
+import { PolicyFilter, DEFAULT_FILTER } from '../../core/models/policy-filter.model';
 import { ToastService } from '../../core/services/toast.service';
+import { PolicyService } from '../../core/services/policy.service';
 import { IconComponent } from '../../shared/ui/icon.component';
 import { formatCurrency, formatDate, formatRelativeTime } from '../../shared/utils/format';
 import { AiAssistantDrawerComponent } from './components/ai-assistant-drawer.component';
@@ -235,7 +237,10 @@ import { PolicyStateService } from './policy-state.service';
       id="policy-copilot"
       [open]="assistantOpen()"
       [filter]="state.filter()"
+      [flagInFlight]="state.flagInFlight()"
+      [flaggedIds]="flaggedIdsSet()"
       (close)="assistantOpen.set(false)"
+      (flagRequest)="handleCopilotFlag($event)"
     />
 
     <app-policy-detail-drawer
@@ -279,6 +284,7 @@ import { PolicyStateService } from './policy-state.service';
 export class PoliciesPageComponent implements OnInit {
   protected readonly state = inject(PolicyStateService);
   private readonly toast = inject(ToastService);
+  private readonly injector = inject(Injector);
 
   /** Route-supplied view configuration — see app.routes.ts. */
   readonly title = input('Policy Dashboard');
@@ -303,6 +309,47 @@ export class PoliciesPageComponent implements OnInit {
   protected readonly isEmpty = computed(
     () => state_isEmpty(this.state.status(), this.state.items().length)
   );
+
+  protected readonly flaggedIdsSet = computed(
+    () => new Set(this.state.items().filter((p) => p.flaggedForReview).map((p) => p.policyNumber))
+  );
+
+  protected handleCopilotFlag(policyNumbers: string[]): void {
+    const items = this.state.items();
+    const idsToFlag: string[] = [];
+    const missingNumbers: string[] = [];
+
+    for (const num of policyNumbers) {
+      const found = items.find(p => p.policyNumber === num);
+      if (found) idsToFlag.push(found.id);
+      else missingNumbers.push(num);
+    }
+
+    if (missingNumbers.length === 0) {
+      this.state.flagPolicies(idsToFlag);
+      return;
+    }
+
+    // If some aren't on the current page, look them up via the API.
+    const api = this.injector.get(PolicyService);
+    const lookups = missingNumbers.map(num => 
+      api.getPolicies({ ...DEFAULT_FILTER, search: num })
+    );
+
+    forkJoin(lookups).subscribe({
+      next: (results) => {
+        for (const res of results) {
+          if (res.items.length > 0) idsToFlag.push(res.items[0].id);
+        }
+        if (idsToFlag.length > 0) {
+          this.state.flagPolicies(idsToFlag);
+        } else {
+          this.toast.error('Could not find those policies to flag.');
+        }
+      },
+      error: () => this.toast.error('Error looking up policies to flag.')
+    });
+  }
 
   ngOnInit(): void {
     this.state.init();

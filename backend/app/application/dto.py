@@ -76,6 +76,7 @@ class PolicySummaryDto(CamelModel):
     flagged_count: int
     total_count: int
     counts_by_region: dict[str, int]
+    premium_by_region: dict[str, Money]
 
 
 class FlagPoliciesRequest(CamelModel):

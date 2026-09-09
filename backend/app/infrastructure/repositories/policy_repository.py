@@ -68,6 +68,9 @@ class SqlPolicyQueryService:
         region_rows = await self._session.execute(
             select(filtered.c.region, func.count()).group_by(filtered.c.region)
         )
+        region_premium_rows = await self._session.execute(
+            select(filtered.c.region, func.sum(filtered.c.premium_amount)).group_by(filtered.c.region)
+        )
 
         today = date.today()
         horizon = today + timedelta(days=EXPIRING_SOON_DAYS)
@@ -95,6 +98,9 @@ class SqlPolicyQueryService:
             flagged_count=int(flagged or 0),
             total_count=int(total or 0),
             counts_by_region={region: int(count) for region, count in region_rows},
+            premium_by_region={
+                region: Decimal(total_premium or 0) for region, total_premium in region_premium_rows
+            },
         )
 
 
