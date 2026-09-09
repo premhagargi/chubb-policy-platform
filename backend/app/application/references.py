@@ -122,4 +122,20 @@ def extract_search_terms(question: str) -> list[str]:
         # a usable term, so only the fully-stopword case is dropped.
         add(match)
 
+    if not terms:
+        # Fallback for all-lowercase conversational input (e.g. "pull up courtney spencer policy for me")
+        filler = _STOPWORDS | {
+            "can", "you", "please", "pull", "up", "for", "me", "my", "of", "in", "on", "to", "a", "an",
+            "is", "are", "am", "be", "do", "does", "did", "have", "has", "had", "will", "would", "shall",
+            "should", "could", "may", "might", "must", "about", "at", "by", "from", "with", "i", "need",
+            "want", "look", "search", "check", "out", "it", "them", "us", "we", "he", "she", "they",
+            "his", "her", "their", "theirs", "mine", "yours", "your", "our", "ours"
+        }
+        words = [w for w in re.findall(r"\b[a-z]{2,20}\b", question.lower()) if w not in filler]
+        if len(words) >= 2:
+            # Group remaining words into potential name chunks of up to 3 words
+            chunk = " ".join(words[:3])
+            if len(chunk) > 3:
+                add(chunk)
+
     return terms[:MAX_TERMS]
