@@ -112,15 +112,10 @@ import { PolicyStateService } from './policy-state.service';
 
         @if (showTable()) {
           <section class="surface-card overflow-hidden">
-            <div class="flex items-center justify-between gap-3 px-4 pt-4">
-              <h2 class="text-[15px] font-semibold tracking-tight" style="color: var(--text);">
-                Policies
-              </h2>
-            </div>
-
             <app-policy-toolbar
               [filter]="state.filter()"
               [activeCount]="state.activeFilters()"
+              [lockedKeys]="lockedKeys()"
               [searching]="state.status() === 'loading'"
               (change)="state.patchFilter($event)"
               (clearAll)="state.clearFilters()"
@@ -179,7 +174,7 @@ import { PolicyStateService } from './policy-state.service';
                     There are no policies in the portfolio yet.
                   }
                 </p>
-                @if (state.activeFilters() > 0) {
+                @if (state.activeFilters() > 0 && lockedKeys().length === 0) {
                   <button
                     type="button"
                     class="mt-4 h-9 rounded-md border px-4 text-[13px] font-medium transition-colors hover:bg-[var(--surface-hover)]"
@@ -291,6 +286,15 @@ export class PoliciesPageComponent implements OnInit {
   readonly showOverview = input(true);
   readonly showTable = input(true);
   readonly seedFilter = input<Partial<PolicyFilter> | null>(null);
+
+  /**
+   * Filter keys this route pins. /flagged seeds `flagged: true` and re-applies it
+   * on every navigation, so anything offering to clear it did nothing — the
+   * toolbar hides those affordances rather than leaving them dead.
+   */
+  protected readonly lockedKeys = computed(
+    () => Object.keys(this.seedFilter() ?? {}) as (keyof PolicyFilter)[]
+  );
 
   protected readonly assistantOpen = signal(false);
   protected readonly flagDialogOpen = signal(false);

@@ -175,14 +175,18 @@ interface Chip {
               </div>
 
               <div class="mt-3.5 flex justify-between gap-2 pt-3" style="border-top: 1px solid var(--border);">
-                <button
-                  type="button"
-                  class="rounded-md px-2.5 py-1.5 text-[13px] font-medium transition-colors hover:bg-[var(--surface-hover)]"
-                  style="color: var(--text-muted);"
-                  (click)="clearAll.emit()"
-                >
-                  Clear all
-                </button>
+                @if (canClearAll()) {
+                  <button
+                    type="button"
+                    class="rounded-md px-2.5 py-1.5 text-[13px] font-medium transition-colors hover:bg-[var(--surface-hover)]"
+                    style="color: var(--text-muted);"
+                    (click)="clearAll.emit()"
+                  >
+                    Clear all
+                  </button>
+                } @else {
+                  <span></span>
+                }
                 <button
                   type="button"
                   class="rounded-md px-3 py-1.5 text-[13px] font-medium transition-opacity hover:opacity-90"
@@ -228,14 +232,16 @@ interface Chip {
               </button>
             </span>
           }
-          <button
-            type="button"
-            class="ml-0.5 rounded px-1.5 py-1 text-xs font-medium underline-offset-2 hover:underline"
-            style="color: var(--brand);"
-            (click)="clearAll.emit()"
-          >
-            Clear all
-          </button>
+          @if (canClearAll()) {
+            <button
+              type="button"
+              class="ml-0.5 rounded px-1.5 py-1 text-xs font-medium underline-offset-2 hover:underline"
+              style="color: var(--brand);"
+              (click)="clearAll.emit()"
+            >
+              Clear all
+            </button>
+          }
         </div>
       }
     </div>
@@ -246,6 +252,13 @@ export class PolicyToolbarComponent {
 
   readonly filter = input.required<PolicyFilter>();
   readonly activeCount = input(0);
+
+  /**
+   * Filter keys the route pins (e.g. `flagged` on /flagged). Clearing one is a
+   * no-op — the route re-seeds it on the next navigation — so the affordances
+   * that claim to clear it are hidden rather than left dead.
+   */
+  readonly lockedKeys = input<readonly (keyof PolicyFilter)[]>([]);
   readonly searching = input(false);
 
   readonly change = output<Partial<PolicyFilter>>();
@@ -296,8 +309,13 @@ export class PolicyToolbarComponent {
     this.change.emit({ flagged: value === '' ? null : value === 'true' });
   }
 
+  protected canClearAll(): boolean {
+    return this.lockedKeys().length === 0;
+  }
+
   protected chips(): Chip[] {
     const f = this.filter();
+    const locked = this.lockedKeys();
     const chips: Chip[] = [];
     if (f.status) chips.push({ key: 'status', label: `Status: ${f.status}` });
     if (f.lineOfBusiness) chips.push({ key: 'lineOfBusiness', label: `LOB: ${f.lineOfBusiness}` });
@@ -308,7 +326,7 @@ export class PolicyToolbarComponent {
     if (f.effectiveDateFrom)
       chips.push({ key: 'effectiveDateFrom', label: `From: ${f.effectiveDateFrom}` });
     if (f.effectiveDateTo) chips.push({ key: 'effectiveDateTo', label: `To: ${f.effectiveDateTo}` });
-    return chips;
+    return chips.filter((chip) => !locked.includes(chip.key));
   }
 
   protected onDocumentClick(event: MouseEvent): void {

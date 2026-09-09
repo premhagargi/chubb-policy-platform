@@ -46,7 +46,7 @@ interface Turn {
   template: `
     @if (open()) {
       <aside
-        class="animate-drawer-in fixed bottom-4 right-4 top-4 z-50 flex w-[calc(100vw-2rem)] max-w-[420px] flex-col overflow-hidden rounded-xl shadow-2xl"
+        class="animate-drawer-in fixed bottom-4 right-4 top-4 z-50 flex w-[calc(100vw-2rem)] max-w-[350px] flex-col overflow-hidden rounded-xl shadow-2xl"
         style="background: var(--surface); border: 1px solid var(--border);"
         role="complementary"
         aria-label="Policy Copilot assistant"
@@ -183,7 +183,7 @@ interface Turn {
 
           <label class="sr-only" for="copilot-prompt">Ask a question about these policies</label>
           <div
-            class="flex items-center gap-2 rounded-lg border px-3 py-1.5 transition-colors focus-within:border-[var(--brand)]"
+            class="flex items-center gap-2 rounded-2xl border py-1.5 pl-3 pr-1.5 transition-colors focus-within:border-[var(--brand)]"
             style="background: var(--bg); border-color: var(--border);"
           >
             <textarea
@@ -192,7 +192,7 @@ interface Turn {
               rows="1"
               class="max-h-28 min-h-8 flex-1 resize-none self-center bg-transparent py-1.5 text-[13px] leading-5 outline-none"
               style="color: var(--text);"
-              placeholder="Ask about these policies, or name a policy number…"
+              placeholder="Ask a question…"
               maxlength="2000"
               [(ngModel)]="prompt"
               (keydown.enter)="onEnter($event)"
@@ -201,7 +201,7 @@ interface Turn {
 
             <button
               type="submit"
-              class="flex h-8 w-8 shrink-0 items-center justify-center rounded-md transition-opacity hover:opacity-90 disabled:opacity-40"
+              class="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl transition-opacity hover:opacity-90 disabled:opacity-40"
               style="background: var(--brand); color: var(--brand-contrast);"
               [disabled]="!canSubmit()"
               [attr.aria-label]="streaming() ? 'Stop generating' : 'Send question'"
