@@ -1,9 +1,12 @@
-## .NET
-bin/
-obj/
-*.user
-*.suo
-.vs/
+## Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+*.db
+*.sqlite3
 
 ## Node / Angular
 node_modules/
