@@ -1,119 +1,324 @@
-import { Injectable, effect, inject, signal } from '@angular/core';
-import { ActivatedRoute, Router } from '@angular/router';
-import { forkJoin } from 'rxjs';
+import {
+  Injectable,
+  Injector,
+  computed,
+  effect,
+  inject,
+  runInInjectionContext,
+  signal,
+} from '@angular/core';
+import { ActivatedRoute, Params, Router } from '@angular/router';
+import { forkJoin, of } from 'rxjs';
+import { catchError, finalize, switchMap } from 'rxjs/operators';
 import { Policy } from '../../core/models/policy.model';
+import {
+  DEFAULT_FILTER,
+  PolicyFilter,
+  activeFilterCount,
+} from '../../core/models/policy-filter.model';
 import { PolicySummary } from '../../core/models/policy-summary.model';
-import { DEFAULT_FILTER, PolicyFilter } from '../../core/models/policy-filter.model';
 import { PolicyService } from '../../core/services/policy.service';
-import { ApiError } from '../../core/interceptors/error.interceptor';
+import { ToastService } from '../../core/services/toast.service';
 
 export type RequestStatus = 'idle' | 'loading' | 'success' | 'error';
 
 /**
- * Owns SERVER state only: the current filter/paging/sort query, the fetched page of
- * policies, the fetched summary, and the in-flight request status. Client-only state
- * (theme, row selection) lives elsewhere (ThemeService, component-local signals) and
- * never touches this service. The filter is the single source of truth and is kept in
- * sync with the URL's query params both ways, so the current view is always shareable.
+ * The single data layer for the policy workspace. Components read signals and call
+ * intent methods — no component issues its own HTTP request.
+ *
+ * The filter signal is the source of truth; an effect mirrors it into the URL and
+ * refetches, which is what makes refresh, deep-linking and back/forward work without
+ * any component touching the router.
  */
 @Injectable({ providedIn: 'root' })
 export class PolicyStateService {
-  private readonly route = inject(ActivatedRoute);
+  private readonly api = inject(PolicyService);
+  private readonly toast = inject(ToastService);
   private readonly router = inject(Router);
-  private readonly policyService = inject(PolicyService);
+  private readonly route = inject(ActivatedRoute);
+  private readonly injector = inject(Injector);
 
-  readonly filter = signal<PolicyFilter>(DEFAULT_FILTER);
-  readonly status = signal<RequestStatus>('idle');
-  readonly items = signal<Policy[]>([]);
-  readonly totalCount = signal(0);
-  readonly totalPages = signal(0);
-  readonly summary = signal<PolicySummary | null>(null);
-  readonly error = signal<ApiError | null>(null);
+  // --- list state ---
+  private readonly _filter = signal<PolicyFilter>({ ...DEFAULT_FILTER });
+  private readonly _status = signal<RequestStatus>('idle');
+  private readonly _items = signal<Policy[]>([]);
+  private readonly _totalCount = signal(0);
+  private readonly _totalPages = signal(0);
+  private readonly _summary = signal<PolicySummary | null>(null);
+  private readonly _lastUpdated = signal<Date | null>(null);
 
-  private initialized = false;
+  // --- selection (client-only; never round-trips to the server) ---
+  private readonly _selectedIds = signal<ReadonlySet<string>>(new Set());
 
-  /** Called once by the page container on init — reads the initial filter from the URL,
-   * then reacts to every subsequent filter change by refetching. */
-  initFromUrl(): void {
-    if (this.initialized) return;
-    this.initialized = true;
+  // --- detail drawer ---
+  private readonly _detail = signal<Policy | null>(null);
+  private readonly _detailLoading = signal(false);
+  private readonly _detailId = signal<string | null>(null);
 
-    const params = this.route.snapshot.queryParamMap;
-    this.filter.set({
-      page: Number(params.get('page') ?? DEFAULT_FILTER.page),
-      size: Number(params.get('size') ?? DEFAULT_FILTER.size),
-      sort: params.get('sort') ?? DEFAULT_FILTER.sort,
-      status: params.get('status'),
-      lineOfBusiness: params.get('lineOfBusiness'),
-      region: params.get('region'),
-      effectiveDateFrom: params.get('effectiveDateFrom'),
-      effectiveDateTo: params.get('effectiveDateTo'),
-      search: params.get('search')
-    });
+  // --- mutation ---
+  private readonly _flagInFlight = signal(false);
 
-    effect(() => {
-      const currentFilter = this.filter();
-      this.syncUrl(currentFilter);
-      this.fetch(currentFilter);
+  readonly filter = this._filter.asReadonly();
+  readonly status = this._status.asReadonly();
+  readonly items = this._items.asReadonly();
+  readonly totalCount = this._totalCount.asReadonly();
+  readonly totalPages = this._totalPages.asReadonly();
+  readonly summary = this._summary.asReadonly();
+  readonly lastUpdated = this._lastUpdated.asReadonly();
+  readonly selectedIds = this._selectedIds.asReadonly();
+  readonly detail = this._detail.asReadonly();
+  readonly detailLoading = this._detailLoading.asReadonly();
+  readonly detailId = this._detailId.asReadonly();
+  readonly flagInFlight = this._flagInFlight.asReadonly();
+
+  readonly activeFilters = computed(() => activeFilterCount(this._filter()));
+  readonly selectedCount = computed(() => this._selectedIds().size);
+  readonly hasSelection = computed(() => this._selectedIds().size > 0);
+  readonly isFirstLoad = computed(() => this._status() === 'loading' && this._items().length === 0);
+
+  /** Indices of the current page within the overall result set, for "Showing X–Y of Z". */
+  readonly range = computed(() => {
+    const { page, size } = this._filter();
+    const total = this._totalCount();
+    if (total === 0) return { from: 0, to: 0, total: 0 };
+    const from = (page - 1) * size + 1;
+    return { from, to: Math.min(from + size - 1, total), total };
+  });
+
+  readonly allOnPageSelected = computed(() => {
+    const items = this._items();
+    if (items.length === 0) return false;
+    const selected = this._selectedIds();
+    return items.every((p) => selected.has(p.id));
+  });
+
+  readonly someOnPageSelected = computed(() => {
+    const selected = this._selectedIds();
+    return this._items().some((p) => selected.has(p.id)) && !this.allOnPageSelected();
+  });
+
+  private initialised = false;
+
+  /** Called once by the shell. Seeds the filter from the URL, then keeps the two in sync. */
+  init(): void {
+    if (this.initialised) return;
+    this.initialised = true;
+
+    this._filter.set(this.readFilterFromUrl());
+
+    // init() is called from ngOnInit, which is not an injection context — effect()
+    // needs one to register its cleanup with the right lifecycle.
+    runInInjectionContext(this.injector, () => {
+      effect(() => {
+        const filter = this._filter();
+        this.writeFilterToUrl(filter);
+        this.fetch(filter);
+      });
     });
   }
 
-  /** Merge a partial filter change. Any change other than an explicit page navigation
-   * resets to page 1 — changing a filter while sitting on page 4 of the old results
-   * would otherwise silently show an out-of-range page. */
-  updateFilter(partial: Partial<PolicyFilter>): void {
-    const resetPage = !('page' in partial);
-    this.filter.update((current) => ({
-      ...current,
-      ...partial,
-      page: resetPage ? 1 : (partial.page ?? current.page)
+  /** Merge a partial change. Any change other than paging resets to page 1, since the
+   *  old page number is meaningless against a different result set. */
+  patchFilter(patch: Partial<PolicyFilter>): void {
+    this._filter.update((current) => {
+      const isPagingOnly = Object.keys(patch).every((k) => k === 'page' || k === 'size');
+      return { ...current, ...patch, page: isPagingOnly ? (patch.page ?? current.page) : 1 };
+    });
+  }
+
+  setPage(page: number): void {
+    this._filter.update((f) => ({ ...f, page }));
+  }
+
+  setPageSize(size: number): void {
+    this._filter.update((f) => ({ ...f, size, page: 1 }));
+  }
+
+  /** Toggles asc/desc when re-sorting the same column, otherwise starts ascending. */
+  toggleSort(field: string): void {
+    this._filter.update((f) => {
+      const [currentField, currentDir] = f.sort.split(',');
+      const dir = currentField === field && currentDir !== 'desc' ? 'desc' : 'asc';
+      return { ...f, sort: `${field},${dir}`, page: 1 };
+    });
+  }
+
+  clearFilters(): void {
+    this._filter.update((f) => ({
+      ...DEFAULT_FILTER,
+      size: f.size,
+      sort: f.sort,
     }));
   }
 
-  refetch(): void {
-    this.fetch(this.filter());
+  clearFilter(key: keyof PolicyFilter): void {
+    this.patchFilter({ [key]: null } as Partial<PolicyFilter>);
   }
 
-  private fetch(filter: PolicyFilter): void {
-    this.status.set('loading');
-    this.error.set(null);
+  refetch(): void {
+    this.fetch(this._filter());
+  }
 
-    forkJoin({
-      page: this.policyService.getPolicies(filter),
-      summary: this.policyService.getSummary(filter)
-    }).subscribe({
-      next: ({ page, summary }) => {
-        this.items.set(page.items);
-        this.totalCount.set(page.totalCount);
-        this.totalPages.set(page.totalPages);
-        this.summary.set(summary);
-        this.status.set('success');
-      },
-      error: (err: ApiError) => {
-        this.error.set(err);
-        this.status.set('error');
-      }
+  // --- selection ---
+
+  toggleRow(id: string): void {
+    this._selectedIds.update((set) => {
+      const next = new Set(set);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
     });
   }
 
-  private syncUrl(filter: PolicyFilter): void {
-    const queryParams: Record<string, string | null> = {
-      page: String(filter.page),
-      size: String(filter.size),
-      sort: filter.sort,
-      status: filter.status,
-      lineOfBusiness: filter.lineOfBusiness,
-      region: filter.region,
-      effectiveDateFrom: filter.effectiveDateFrom,
-      effectiveDateTo: filter.effectiveDateTo,
-      search: filter.search
+  toggleAllOnPage(): void {
+    const items = this._items();
+    const allSelected = this.allOnPageSelected();
+    this._selectedIds.update((set) => {
+      const next = new Set(set);
+      for (const p of items) {
+        if (allSelected) next.delete(p.id);
+        else next.add(p.id);
+      }
+      return next;
+    });
+  }
+
+  clearSelection(): void {
+    this._selectedIds.set(new Set());
+  }
+
+  // --- detail drawer ---
+
+  openDetail(policy: Policy): void {
+    // Seed from the row we already have so the drawer paints instantly, then refresh
+    // from the API for the authoritative record.
+    this._detailId.set(policy.id);
+    this._detail.set(policy);
+    this._detailLoading.set(true);
+
+    this.api
+      .getById(policy.id)
+      .pipe(finalize(() => this._detailLoading.set(false)))
+      .subscribe({
+        next: (full) => {
+          if (this._detailId() === policy.id) this._detail.set(full);
+        },
+        error: () => this.toast.error('Unable to load policy details'),
+      });
+  }
+
+  closeDetail(): void {
+    this._detailId.set(null);
+    this._detail.set(null);
+    this._detailLoading.set(false);
+  }
+
+  // --- mutations ---
+
+  flagPolicies(ids: string[]): void {
+    if (ids.length === 0 || this._flagInFlight()) return;
+    this._flagInFlight.set(true);
+
+    this.api
+      .flagPolicies(ids)
+      .pipe(
+        // Refetch on the same subscription so the table can never show stale
+        // flag state after a successful mutation.
+        switchMap((res) =>
+          forkJoin({
+            page: this.api.getPolicies(this._filter()),
+            summary: this.api.getSummary(this._filter()),
+          }).pipe(switchMap((data) => of({ res, data })))
+        ),
+        finalize(() => this._flagInFlight.set(false))
+      )
+      .subscribe({
+        next: ({ res, data }) => {
+          this._items.set(data.page.items);
+          this._totalCount.set(data.page.totalCount);
+          this._totalPages.set(data.page.totalPages);
+          this._summary.set(data.summary);
+          this._lastUpdated.set(new Date());
+          this.clearSelection();
+
+          const n = res.flaggedCount;
+          this.toast.success(
+            n === 1 ? '1 policy flagged successfully' : `${n} policies flagged successfully`
+          );
+
+          // Keep an open drawer in sync with the row it is showing.
+          const openId = this._detailId();
+          if (openId && res.flaggedPolicyIds.includes(openId)) {
+            const updated = data.page.items.find((p) => p.id === openId);
+            if (updated) this._detail.set(updated);
+            else this._detail.update((p) => (p ? { ...p, flaggedForReview: true } : p));
+          }
+        },
+        error: () => this.toast.error('Unable to update policies'),
+      });
+  }
+
+  // --- internals ---
+
+  private fetch(filter: PolicyFilter): void {
+    this._status.set('loading');
+
+    forkJoin({
+      page: this.api.getPolicies(filter),
+      summary: this.api.getSummary(filter),
+    })
+      .pipe(catchError(() => of(null)))
+      .subscribe((data) => {
+        if (!data) {
+          this._status.set('error');
+          return;
+        }
+        this._items.set(data.page.items);
+        this._totalCount.set(data.page.totalCount);
+        this._totalPages.set(data.page.totalPages);
+        this._summary.set(data.summary);
+        this._lastUpdated.set(new Date());
+        this._status.set('success');
+      });
+  }
+
+  private readFilterFromUrl(): PolicyFilter {
+    const q = this.route.snapshot.queryParamMap;
+    const num = (key: string, fallback: number) => {
+      const parsed = Number(q.get(key));
+      return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
     };
+    const flagged = q.get('flagged');
+
+    return {
+      page: num('page', DEFAULT_FILTER.page),
+      size: num('size', DEFAULT_FILTER.size),
+      sort: q.get('sort') ?? DEFAULT_FILTER.sort,
+      status: q.get('status'),
+      lineOfBusiness: q.get('lineOfBusiness'),
+      region: q.get('region'),
+      effectiveDateFrom: q.get('effectiveDateFrom'),
+      effectiveDateTo: q.get('effectiveDateTo'),
+      search: q.get('search'),
+      flagged: flagged === null ? null : flagged === 'true',
+    };
+  }
+
+  private writeFilterToUrl(filter: PolicyFilter): void {
+    const params: Params = {};
+    for (const [key, value] of Object.entries(filter)) {
+      // Defaults stay out of the URL so a pristine view has a clean address.
+      if (value === null || value === '') continue;
+      if (key === 'page' && value === 1) continue;
+      if (key === 'size' && value === DEFAULT_FILTER.size) continue;
+      if (key === 'sort' && value === DEFAULT_FILTER.sort) continue;
+      params[key] = value;
+    }
 
     this.router.navigate([], {
       relativeTo: this.route,
-      queryParams,
-      queryParamsHandling: '',
-      replaceUrl: true
+      queryParams: params,
+      replaceUrl: true,
     });
   }
 }

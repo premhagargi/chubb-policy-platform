@@ -54,14 +54,25 @@ public class PolicyQueryService(ApplicationDbContext db) : IPolicyQueryService
             .Select(g => new { LineOfBusiness = g.Key, Total = g.Sum(p => p.PremiumAmount) })
             .ToListAsync(ct);
 
+        var regionCounts = await filtered
+            .GroupBy(p => p.Region)
+            .Select(g => new { Region = g.Key, Count = g.Count() })
+            .ToListAsync(ct);
+
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
         var horizon = today.AddDays(30);
         var expiringSoonCount = await filtered.CountAsync(
             p => p.Status == PolicyStatus.Active && p.ExpiryDate >= today && p.ExpiryDate <= horizon, ct);
 
+        var flaggedCount = await filtered.CountAsync(p => p.FlaggedForReview, ct);
+        var totalCount = await filtered.CountAsync(ct);
+
         return new PolicySummaryDto(
             statusCounts.ToDictionary(x => x.Status.ToString(), x => x.Count),
             premiumByLob.ToDictionary(x => x.LineOfBusiness.ToWireString(), x => x.Total),
-            expiringSoonCount);
+            expiringSoonCount,
+            flaggedCount,
+            totalCount,
+            regionCounts.ToDictionary(x => x.Region.ToWireString(), x => x.Count));
     }
 }

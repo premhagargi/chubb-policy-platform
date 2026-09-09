@@ -23,8 +23,8 @@ public static class PolicySeeder
 
         logger.LogInformation("Seeding {Count} policies...", TargetTotal);
 
-        // Fixed seed: docker-compose up produces the same data every time, not a fresh
-        // random set on every restart.
+        // Fixed seed: every run produces the same data, not a fresh random set on every
+        // restart.
         var randomizer = new Randomizer(20260503);
         Randomizer.Seed = new Random(20260503);
 

@@ -1,11 +1,12 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { Policy } from '../models/policy.model';
 import { PagedResult } from '../models/paged-result.model';
 import { PolicyFilter } from '../models/policy-filter.model';
 import { PolicySummary } from '../models/policy-summary.model';
 
+/** Mirrors FlagPoliciesResult on the server. */
 export interface FlagPoliciesResponse {
   flaggedPolicyIds: string[];
   flaggedCount: number;
@@ -18,14 +19,18 @@ const BASE_URL = '/api/v1/policies';
  * hand-mutated outside this boundary. */
 @Injectable({ providedIn: 'root' })
 export class PolicyService {
-  constructor(private readonly http: HttpClient) {}
+  private readonly http = inject(HttpClient);
 
   getPolicies(filter: PolicyFilter): Observable<PagedResult<Policy>> {
-    return this.http.get<PagedResult<Policy>>(BASE_URL, { params: this.toHttpParams(filter, true) });
+    return this.http.get<PagedResult<Policy>>(BASE_URL, {
+      params: this.toHttpParams(filter, true),
+    });
   }
 
   getSummary(filter: PolicyFilter): Observable<PolicySummary> {
-    return this.http.get<PolicySummary>(`${BASE_URL}/summary`, { params: this.toHttpParams(filter, false) });
+    return this.http.get<PolicySummary>(`${BASE_URL}/summary`, {
+      params: this.toHttpParams(filter, false),
+    });
   }
 
   getById(id: string): Observable<Policy> {
@@ -48,6 +53,8 @@ export class PolicyService {
     if (filter.effectiveDateFrom) params = params.set('effectiveDateFrom', filter.effectiveDateFrom);
     if (filter.effectiveDateTo) params = params.set('effectiveDateTo', filter.effectiveDateTo);
     if (filter.search) params = params.set('search', filter.search);
+    // Explicit null check — `false` is a meaningful value here, unlike the others.
+    if (filter.flagged !== null) params = params.set('flagged', filter.flagged);
 
     return params;
   }

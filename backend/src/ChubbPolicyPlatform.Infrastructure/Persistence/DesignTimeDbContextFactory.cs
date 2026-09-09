@@ -6,8 +6,8 @@ namespace ChubbPolicyPlatform.Infrastructure.Persistence;
 /// <summary>
 /// Lets `dotnet ef migrations add` / `dotnet ef database update` run against this
 /// project directly (no --startup-project needed) by supplying a connection string from
-/// the CHUBB_DB_CONNECTION env var, falling back to the local dev default used by
-/// docker-compose's exposed Postgres port.
+/// the CHUBB_DB_CONNECTION env var, falling back to a local Postgres default (a plain
+/// install on the standard port).
 /// </summary>
 public class DesignTimeDbContextFactory : IDesignTimeDbContextFactory<ApplicationDbContext>
 {

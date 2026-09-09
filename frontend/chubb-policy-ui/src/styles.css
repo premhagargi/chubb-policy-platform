@@ -1,0 +1,284 @@
+@import 'tailwindcss';
+
+/* ---------------------------------------------------------------------------
+   Chubb Policy Platform — design tokens
+   Enterprise insurance operations palette: Chubb red as the single brand accent,
+   neutral slate surfaces carrying the data. Semantic status colours are muted on
+   purpose — in a data-dense grid, saturated badges compete with the numbers.
+--------------------------------------------------------------------------- */
+
+@theme {
+  --font-sans:
+    'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+
+  --color-brand-50: #fef2f3;
+  --color-brand-100: #fde3e5;
+  --color-brand-200: #fbccd1;
+  --color-brand-300: #f7a3ac;
+  --color-brand-400: #f06e7e;
+  --color-brand-500: #e43d54;
+  --color-brand-600: #c8102e;
+  --color-brand-700: #a80d27;
+  --color-brand-800: #8c0f24;
+  --color-brand-900: #771123;
+  --color-brand-950: #42040e;
+
+  --radius-card: 0.625rem;
+}
+
+/* Semantic surface tokens — every component reads these, never raw hex, so the
+   light/dark split lives in exactly one place. */
+:root {
+  --bg: #f6f7f9;
+  --surface: #ffffff;
+  --surface-subtle: #fafbfc;
+  --surface-hover: #f4f5f7;
+  --border: #e3e6ea;
+  --border-strong: #d2d7dd;
+  --text: #11151c;
+  --text-muted: #5f6874;
+  --text-subtle: #858d99;
+  --brand: #c8102e;
+  --brand-contrast: #ffffff;
+  --ring: #c8102e;
+
+  --status-active: #0f7b52;
+  --status-active-bg: #e7f5ee;
+  --status-pending: #9a6206;
+  --status-pending-bg: #fdf3e2;
+  --status-expired: #5f6874;
+  --status-expired-bg: #f0f2f4;
+  --status-cancelled: #a4262c;
+  --status-cancelled-bg: #fdeced;
+  --flag: #b0450b;
+  --flag-bg: #fdf0e7;
+
+  --sidebar-bg: #10151d;
+  --sidebar-text: #98a2b3;
+  --sidebar-text-active: #ffffff;
+  --sidebar-hover: #1b2230;
+  --sidebar-active: #232c3c;
+  --sidebar-border: #1e2632;
+
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --bg: #0d1117;
+    --surface: #151b24;
+    --surface-subtle: #11171f;
+    --surface-hover: #1c232e;
+    --border: #262e3a;
+    --border-strong: #333d4c;
+    --text: #e8ebf0;
+    --text-muted: #99a3b2;
+    --text-subtle: #6f7987;
+    --brand: #f2576d;
+    --brand-contrast: #1a0409;
+    --ring: #f2576d;
+
+    --status-active: #4ecb96;
+    --status-active-bg: #10291f;
+    --status-pending: #e0aa50;
+    --status-pending-bg: #2b2113;
+    --status-expired: #99a3b2;
+    --status-expired-bg: #1c232e;
+    --status-cancelled: #f58089;
+    --status-cancelled-bg: #2e1418;
+    --flag: #eb9663;
+    --flag-bg: #2c1a10;
+
+    --sidebar-bg: #0a0e14;
+    --sidebar-text: #8b95a5;
+    --sidebar-text-active: #ffffff;
+    --sidebar-hover: #151b24;
+    --sidebar-active: #1d2530;
+    --sidebar-border: #1a212b;
+
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme='dark'] {
+  --bg: #0d1117;
+  --surface: #151b24;
+  --surface-subtle: #11171f;
+  --surface-hover: #1c232e;
+  --border: #262e3a;
+  --border-strong: #333d4c;
+  --text: #e8ebf0;
+  --text-muted: #99a3b2;
+  --text-subtle: #6f7987;
+  --brand: #f2576d;
+  --brand-contrast: #1a0409;
+  --ring: #f2576d;
+
+  --status-active: #4ecb96;
+  --status-active-bg: #10291f;
+  --status-pending: #e0aa50;
+  --status-pending-bg: #2b2113;
+  --status-expired: #99a3b2;
+  --status-expired-bg: #1c232e;
+  --status-cancelled: #f58089;
+  --status-cancelled-bg: #2e1418;
+  --flag: #eb9663;
+  --flag-bg: #2c1a10;
+
+  --sidebar-bg: #0a0e14;
+  --sidebar-text: #8b95a5;
+  --sidebar-text-active: #ffffff;
+  --sidebar-hover: #151b24;
+  --sidebar-active: #1d2530;
+  --sidebar-border: #1a212b;
+
+  color-scheme: dark;
+}
+
+:root[data-theme='light'] {
+  color-scheme: light;
+}
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  html,
+  body {
+    height: 100%;
+  }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-sans);
+    font-size: 14px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    font-feature-settings: 'cv11', 'ss01';
+  }
+
+  /* Tabular figures everywhere numbers are compared down a column. */
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+    border-radius: 3px;
+  }
+
+  button {
+    font: inherit;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--border-strong);
+    border-radius: 5px;
+    border: 2px solid var(--bg);
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--text-subtle);
+  }
+}
+
+@layer utilities {
+  .surface-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-card);
+  }
+
+  .skeleton {
+    background: linear-gradient(
+      90deg,
+      var(--surface-hover) 25%,
+      var(--border) 37%,
+      var(--surface-hover) 63%
+    );
+    background-size: 400% 100%;
+    animation: skeleton-shimmer 1.4s ease infinite;
+    border-radius: 4px;
+  }
+
+  @keyframes skeleton-shimmer {
+    0% {
+      background-position: 100% 50%;
+    }
+    100% {
+      background-position: 0 50%;
+    }
+  }
+
+  .animate-drawer-in {
+    animation: drawer-in 0.22s cubic-bezier(0.32, 0.72, 0, 1);
+  }
+  @keyframes drawer-in {
+    from {
+      transform: translateX(100%);
+    }
+    to {
+      transform: translateX(0);
+    }
+  }
+
+  .animate-fade-in {
+    animation: fade-in 0.15s ease-out;
+  }
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  .animate-dialog-in {
+    animation: dialog-in 0.16s cubic-bezier(0.32, 0.72, 0, 1);
+  }
+  @keyframes dialog-in {
+    from {
+      opacity: 0;
+      transform: translateY(6px) scale(0.98);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  .animate-toast-in {
+    animation: toast-in 0.2s cubic-bezier(0.32, 0.72, 0, 1);
+  }
+  @keyframes toast-in {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .animate-drawer-in,
+    .animate-fade-in,
+    .animate-dialog-in,
+    .animate-toast-in,
+    .skeleton {
+      animation: none;
+    }
+  }
+}

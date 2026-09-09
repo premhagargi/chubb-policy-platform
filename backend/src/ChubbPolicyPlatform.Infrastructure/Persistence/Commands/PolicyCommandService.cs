@@ -7,20 +7,19 @@ public class PolicyCommandService(ApplicationDbContext db) : IPolicyCommandServi
 {
     public async Task<FlagPoliciesResult> FlagPoliciesAsync(FlagPoliciesRequest request, CancellationToken ct = default)
     {
-        var matching = db.Policies.Where(p => request.PolicyIds.Contains(p.Id));
+        // Load + mutate + SaveChanges instead of ExecuteUpdateAsync: the latter isn't
+        // supported by the InMemory provider (POC mode), and this set is bounded by the
+        // request's id list, so materializing it first is cheap.
+        var matching = await db.Policies
+            .Where(p => request.PolicyIds.Contains(p.Id))
+            .ToListAsync(ct);
 
-        // Determine which of the requested ids actually exist before the set-based
-        // update, so the response can report exactly what happened (partial success is
-        // a valid outcome per the documented contract, not an error).
-        var matchedIds = await matching.Select(p => p.Id).ToListAsync(ct);
+        foreach (var policy in matching)
+            policy.Flag();
 
-        if (matchedIds.Count > 0)
-        {
-            await matching.ExecuteUpdateAsync(setters => setters
-                .SetProperty(p => p.FlaggedForReview, true)
-                .SetProperty(p => p.UpdatedAt, DateTimeOffset.UtcNow), ct);
-        }
+        if (matching.Count > 0)
+            await db.SaveChangesAsync(ct);
 
-        return new FlagPoliciesResult(matchedIds);
+        return new FlagPoliciesResult(matching.Select(p => p.Id).ToList());
     }
 }

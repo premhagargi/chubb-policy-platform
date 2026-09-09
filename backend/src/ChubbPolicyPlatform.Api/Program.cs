@@ -37,7 +37,7 @@ builder.Services.AddSwaggerGen(options =>
 
 var app = builder.Build();
 
-// --- Migrate + seed on startup (self-contained docker-compose demo; a dedicated
+// --- Migrate + seed on startup (self-contained standalone demo; a dedicated
 // migration job/init-container is the more production-correct pattern at real scale —
 // documented as a known trade-off in docs/ARCHITECTURE.md). ---
 using (var scope = app.Services.CreateScope())
@@ -45,7 +45,13 @@ using (var scope = app.Services.CreateScope())
     var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
     var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
 
-    await db.Database.MigrateAsync();
+    // InMemory provider (POC mode, no connection string configured) doesn't support
+    // migrations at all — EnsureCreated is the InMemory-appropriate equivalent.
+    if (db.Database.IsInMemory())
+        await db.Database.EnsureCreatedAsync();
+    else
+        await db.Database.MigrateAsync();
+
     await PolicySeeder.SeedAsync(db, logger);
 }
 

@@ -66,8 +66,13 @@ public static class PolicyEndpoints
 /// (the Application-layer DTO) so query-string binding concerns don't leak inward.</summary>
 public class PolicyListQuery
 {
-    public int Page { get; set; } = 1;
-    public int Size { get; set; } = 20;
+    // Nullable, not plain int with a C# default: ASP.NET Core minimal-API [AsParameters]
+    // binding treats a non-nullable value-type property as a REQUIRED query parameter
+    // regardless of its member initializer — omitting ?page from the query string threw
+    // BadHttpRequestException instead of falling back to 1. Nullable + null-coalescing in
+    // ToFilterRequest() is the correct way to make these optional.
+    public int? Page { get; set; }
+    public int? Size { get; set; }
     public string? Sort { get; set; }
     public string? Status { get; set; }
     public string? LineOfBusiness { get; set; }
@@ -75,18 +80,20 @@ public class PolicyListQuery
     public DateOnly? EffectiveDateFrom { get; set; }
     public DateOnly? EffectiveDateTo { get; set; }
     public string? Search { get; set; }
+    public bool? Flagged { get; set; }
 
     public PolicyFilterRequest ToFilterRequest() => new()
     {
-        Page = Page,
-        Size = Size,
+        Page = Page ?? 1,
+        Size = Size ?? 20,
         Sort = Sort,
         Status = Status,
         LineOfBusiness = LineOfBusiness,
         Region = Region,
         EffectiveDateFrom = EffectiveDateFrom,
         EffectiveDateTo = EffectiveDateTo,
-        Search = Search
+        Search = Search,
+        Flagged = Flagged
     };
 }
 
@@ -98,6 +105,7 @@ public class PolicySummaryQuery
     public DateOnly? EffectiveDateFrom { get; set; }
     public DateOnly? EffectiveDateTo { get; set; }
     public string? Search { get; set; }
+    public bool? Flagged { get; set; }
 
     public PolicyFilterRequest ToFilterRequest() => new()
     {
@@ -106,6 +114,7 @@ public class PolicySummaryQuery
         Region = Region,
         EffectiveDateFrom = EffectiveDateFrom,
         EffectiveDateTo = EffectiveDateTo,
-        Search = Search
+        Search = Search,
+        Flagged = Flagged
     };
 }

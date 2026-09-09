@@ -16,4 +16,7 @@ public class PolicyFilterRequest
     public DateOnly? EffectiveDateFrom { get; init; }
     public DateOnly? EffectiveDateTo { get; init; }
     public string? Search { get; init; }
+
+    /// <summary>Null = no flag filter; true/false = only flagged / only unflagged.</summary>
+    public bool? Flagged { get; init; }
 }

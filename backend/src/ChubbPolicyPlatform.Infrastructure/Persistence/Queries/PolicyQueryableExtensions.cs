@@ -9,11 +9,11 @@ namespace ChubbPolicyPlatform.Infrastructure.Persistence.Queries;
 
 /// <summary>
 /// The filter/sort/search pipeline shared by GET /policies and GET /policies/summary.
-/// Lives in Infrastructure (not Application) because ApplySearch needs
-/// EF.Functions.ILike, which pulls in an EF Core dependency — keeping that out of
-/// Application preserves the "Application never references EF Core" boundary. Every
-/// step composes onto the same IQueryable so it all translates to one SQL statement per
-/// call site; nothing here materializes the table.
+/// Lives in Infrastructure (not Application) to keep the "Application never references
+/// EF Core" boundary — ApplySort's Expression&lt;Func&lt;...&gt;&gt; usage pulls in EF Core.
+/// Every step composes onto the same IQueryable so it all translates to one SQL
+/// statement per call site (or runs as plain LINQ-to-Objects against the InMemory
+/// provider); nothing here materializes the table.
 /// </summary>
 public static class PolicyQueryableExtensions
 {
@@ -40,6 +40,9 @@ public static class PolicyQueryableExtensions
         if (request.EffectiveDateTo is { } to)
             query = query.Where(p => p.EffectiveDate <= to);
 
+        if (request.Flagged is { } flagged)
+            query = query.Where(p => p.FlaggedForReview == flagged);
+
         return query;
     }
 
@@ -48,11 +51,14 @@ public static class PolicyQueryableExtensions
         if (string.IsNullOrWhiteSpace(search))
             return query;
 
-        var term = $"%{search.Trim()}%";
+        // ToLower().Contains() instead of EF.Functions.ILike: translates on both Npgsql
+        // (integration tests) and the InMemory provider (POC mode), where ILike has no
+        // client-side implementation and throws at runtime.
+        var term = search.Trim().ToLowerInvariant();
         return query.Where(p =>
-            EF.Functions.ILike(p.PolicyNumber, term) ||
-            EF.Functions.ILike(p.PolicyholderName, term) ||
-            EF.Functions.ILike(p.Underwriter, term));
+            p.PolicyNumber.ToLower().Contains(term) ||
+            p.PolicyholderName.ToLower().Contains(term) ||
+            p.Underwriter.ToLower().Contains(term));
     }
 
     public static IQueryable<Policy> ApplySort(this IQueryable<Policy> query, SortSpec sort)
