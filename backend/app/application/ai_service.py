@@ -79,7 +79,7 @@ class AiService:
     # ----- Feature 1: Policy Copilot ------------------------------------- #
 
     async def answer_prompt(self, question: str, scope: PolicyFilter, history: list[dict[str, str]] | None = None) -> PromptResponse:
-        context = await self._portfolio_context(scope, question=question)
+        context = await self._portfolio_context(scope, question=question, history=history)
         user_prompt = build_copilot_user_prompt(question, context)
 
         answer, usage = await self._complete(
@@ -101,7 +101,7 @@ class AiService:
         Not cached: a cache hit would defeat the purpose of streaming, and the
         non-streaming endpoint already covers repeat questions.
         """
-        context = await self._portfolio_context(scope, question=question)
+        context = await self._portfolio_context(scope, question=question, history=history)
         user_prompt = build_copilot_user_prompt(question, context)
 
         async for token in self._provider.stream(
@@ -151,7 +151,9 @@ class AiService:
 
     # ----- internals ------------------------------------------------------ #
 
-    async def _portfolio_context(self, scope: PolicyFilter, *, question: str | None = None) -> str:
+    async def _portfolio_context(
+        self, scope: PolicyFilter, *, question: str | None = None, history: list[dict[str, str]] | None = None
+    ) -> str:
         """Read aggregates plus a bounded sample through the cached query
         service - the AI path pays the same cache benefit as the REST path.
 
@@ -163,7 +165,7 @@ class AiService:
         summary = await self._queries.get_summary(scope)
         page = await self._queries.get_policies(self._sample_filter(scope))
 
-        referenced = await self._referenced_policies(question, scope) if question else []
+        referenced = await self._referenced_policies(question, history) if question else []
 
         return build_portfolio_context(summary, page.items, scope, referenced=referenced)
 
@@ -181,17 +183,23 @@ class AiService:
             search=scope.search,
             flagged=scope.flagged,
         )
-        return PolicyFilter(**{**base, **overrides})
+        base.update(overrides)
+        return PolicyFilter(**base)
 
-    async def _referenced_policies(self, question: str, scope: PolicyFilter) -> list[PolicyDto]:
-        """Resolve entities named in the question to actual policy records.
+    async def _referenced_policies(self, question: str, history: list[dict[str, str]] | None = None) -> list[PolicyDto]:
+        """Look up records explicitly named in the question or recent history.
 
-        Lookups run against the *unscoped* register rather than the active
+        Crucially, this is a separate search that ignores the active dashboard
         filter: asking about a policy number while the Flagged view is open
         should still find it, and answering "that policy is not in your current
         filter" is more useful than "I have no record of it".
         """
-        terms = extract_search_terms(question)
+        # Search the current question first, then fallback to recent history
+        text_to_search = question
+        if history:
+            text_to_search += " " + " ".join([m["content"] for m in reversed(history)])
+            
+        terms = extract_search_terms(text_to_search)
         if not terms:
             return []
 
