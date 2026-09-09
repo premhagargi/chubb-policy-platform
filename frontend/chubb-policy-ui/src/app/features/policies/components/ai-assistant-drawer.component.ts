@@ -583,13 +583,13 @@ export class AiAssistantDrawerComponent {
   private parseFlagIntent(question: string): string | null {
     const lower = question.toLowerCase().trim();
     // Match patterns like "flag PCL-100219" or "yes, flag PCL-100219"
-    const flagMatch = lower.match(/(?:flag|mark)\s+(?:policy\s+)?([a-z0-9-]+)/i);
+    const flagMatch = lower.match(/(?:flag|mark)\s+(?:policy\s+)?(pcl-\d+)/i);
     if (flagMatch) return flagMatch[1].toUpperCase();
     
     // If they just typed a policy number and the last thing we said was asking for one to flag
     const last = this.turns().at(-1);
     if (last?.role === 'assistant' && last.text.toLowerCase().includes('which one')) {
-       const directMatch = lower.match(/^(?:yes,?\s*)?([a-z0-9-]+)$/i);
+       const directMatch = lower.match(/^(?:yes,?\s*)?(pcl-\d+)$/i);
        if (directMatch) return directMatch[1].toUpperCase();
     }
     
