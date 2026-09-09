@@ -15,7 +15,6 @@ const PRIMARY_NAV: NavItem[] = [
   { label: 'Dashboard', route: '/dashboard', icon: 'dashboard' },
   { label: 'Policies', route: '/policies', icon: 'policies' },
   { label: 'Flagged', route: '/flagged', icon: 'flag' },
-  { label: 'Analytics', route: '/analytics', icon: 'analytics' },
 ];
 
 const SECONDARY_NAV: NavItem[] = [{ label: 'Settings', route: '/settings', icon: 'settings' }];

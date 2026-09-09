@@ -19,7 +19,7 @@ export const routes: Routes = [
           title: 'Policy Dashboard',
           subtitle: 'Monitor policy portfolio and operational activity',
           showOverview: true,
-          showTable: true,
+          showTable: false,
         },
       },
       {
@@ -41,16 +41,6 @@ export const routes: Routes = [
           showOverview: false,
           showTable: true,
           seedFilter: { flagged: true },
-        },
-      },
-      {
-        path: 'analytics',
-        component: PoliciesPageComponent,
-        data: {
-          title: 'Portfolio Analytics',
-          subtitle: 'Distribution and composition of the policy portfolio',
-          showOverview: true,
-          showTable: false,
         },
       },
       {
