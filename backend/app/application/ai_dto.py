@@ -30,9 +30,15 @@ class AiScope(CamelModel):
     flagged: bool | None = None
 
 
+class MessageTurn(CamelModel):
+    role: Literal["user", "assistant"]
+    content: str
+
+
 class PromptRequest(CamelModel):
     prompt: Annotated[str, Field(min_length=1, max_length=MAX_PROMPT_LENGTH)]
     scope: AiScope | None = None
+    history: list[MessageTurn] | None = None
 
 
 class PortfolioBriefRequest(CamelModel):

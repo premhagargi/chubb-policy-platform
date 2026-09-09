@@ -27,11 +27,11 @@ class MockLlmProvider:
     name = "mock"
     model = "mock-llm-v1"
 
-    async def complete(self, *, system_prompt: str, user_prompt: str) -> str:
+    async def complete(self, *, system_prompt: str, user_prompt: str, history: list[dict[str, str]] | None = None) -> str:
         await asyncio.sleep(0.15)  # simulate a plausible round-trip
         return _answer(system_prompt, user_prompt)
 
-    async def stream(self, *, system_prompt: str, user_prompt: str) -> AsyncIterator[str]:
+    async def stream(self, *, system_prompt: str, user_prompt: str, history: list[dict[str, str]] | None = None) -> AsyncIterator[str]:
         text = _answer(system_prompt, user_prompt)
         for token in re.findall(r"\S+\s*", text):
             await asyncio.sleep(_TOKEN_DELAY_SECONDS)

@@ -78,12 +78,12 @@ class AiService:
 
     # ----- Feature 1: Policy Copilot ------------------------------------- #
 
-    async def answer_prompt(self, question: str, scope: PolicyFilter) -> PromptResponse:
+    async def answer_prompt(self, question: str, scope: PolicyFilter, history: list[dict[str, str]] | None = None) -> PromptResponse:
         context = await self._portfolio_context(scope, question=question)
         user_prompt = build_copilot_user_prompt(question, context)
 
         answer, usage = await self._complete(
-            task="copilot", system_prompt=COPILOT_SYSTEM, user_prompt=user_prompt
+            task="copilot", system_prompt=COPILOT_SYSTEM, user_prompt=user_prompt, history=history
         )
 
         return PromptResponse(
@@ -95,7 +95,7 @@ class AiService:
             created_at=_now(),
         )
 
-    async def stream_prompt(self, question: str, scope: PolicyFilter) -> AsyncIterator[str]:
+    async def stream_prompt(self, question: str, scope: PolicyFilter, history: list[dict[str, str]] | None = None) -> AsyncIterator[str]:
         """Token stream for the same feature.
 
         Not cached: a cache hit would defeat the purpose of streaming, and the
@@ -105,7 +105,7 @@ class AiService:
         user_prompt = build_copilot_user_prompt(question, context)
 
         async for token in self._provider.stream(
-            system_prompt=COPILOT_SYSTEM, user_prompt=user_prompt
+            system_prompt=COPILOT_SYSTEM, user_prompt=user_prompt, history=history
         ):
             yield token
 
@@ -210,14 +210,14 @@ class AiService:
         return list(found.values())[:MAX_REFERENCED_POLICIES]
 
     async def _complete(
-        self, *, task: str, system_prompt: str, user_prompt: str
+        self, *, task: str, system_prompt: str, user_prompt: str, history: list[dict[str, str]] | None = None
     ) -> tuple[str, AiUsage]:
-        key = _cache_key(task, self._provider.model, system_prompt, user_prompt)
+        key = _cache_key(task, self._provider.model, system_prompt, user_prompt, history)
         started = time.perf_counter()
 
         answer, was_cached = await self._cache.aget_or_set(
             key,
-            lambda: self._provider.complete(system_prompt=system_prompt, user_prompt=user_prompt),
+            lambda: self._provider.complete(system_prompt=system_prompt, user_prompt=user_prompt, history=history),
             self._ttl,
         )
 
@@ -250,10 +250,11 @@ def _now() -> datetime:
     return datetime.now(tz=timezone.utc)
 
 
-def _cache_key(task: str, model: str, system_prompt: str, user_prompt: str) -> str:
+def _cache_key(task: str, model: str, system_prompt: str, user_prompt: str, history: list[dict[str, str]] | None = None) -> str:
     """Hash the prompt rather than storing it: prompts embed the whole portfolio
     context and would make cache keys kilobytes long."""
-    digest = hashlib.sha256(f"{system_prompt}\x00{user_prompt}".encode("utf-8")).hexdigest()
+    history_str = json.dumps(history) if history else ""
+    digest = hashlib.sha256(f"{system_prompt}\x00{user_prompt}\x00{history_str}".encode("utf-8")).hexdigest()
     return f"ai:{task}:{model}:{digest[:32]}"
 
 

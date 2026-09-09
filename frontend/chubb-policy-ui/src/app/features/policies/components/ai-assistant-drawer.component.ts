@@ -468,7 +468,14 @@ export class AiAssistantDrawerComponent {
 
     const startedAt = performance.now();
 
-    this.subscription = this.ai.askStream(question, toAiScope(this.filter())).subscribe({
+    // Send history (omitting the new user question and the empty assistant turn we just added,
+    // and excluding flag-action UI turns).
+    const history = this.turns()
+      .slice(0, -2)
+      .filter(t => t.role === 'user' || t.role === 'assistant')
+      .map(t => ({ role: t.role, content: t.text }));
+
+    this.subscription = this.ai.askStream(question, toAiScope(this.filter()), history).subscribe({
       next: (event) => {
         if (event.type === 'token') {
           this.appendToAnswer(event.value);

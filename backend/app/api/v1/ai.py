@@ -94,7 +94,8 @@ async def ask(
     body: PromptRequest,
     ai: Annotated[AiService, Depends(get_ai_service)],
 ) -> PromptResponse:
-    return await ai.answer_prompt(body.prompt, _to_filter(body.scope))
+    history = [t.model_dump() for t in body.history] if body.history else None
+    return await ai.answer_prompt(body.prompt, _to_filter(body.scope), history)
 
 
 @router.post(
@@ -108,10 +109,11 @@ async def ask_streaming(
     ai: Annotated[AiService, Depends(get_ai_service)],
 ) -> StreamingResponse:
     scope = _to_filter(body.scope)
+    history = [t.model_dump() for t in body.history] if body.history else None
 
     async def events() -> AsyncIterator[str]:
         try:
-            async for token in ai.stream_prompt(body.prompt, scope):
+            async for token in ai.stream_prompt(body.prompt, scope, history):
                 yield _sse({"type": "token", "value": token})
             yield _sse({"type": "done"})
         except AppError as exc:

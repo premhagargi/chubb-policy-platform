@@ -44,11 +44,11 @@ class CerebrasLlmProvider:
         self._max_tokens = max_tokens
         self._client = AsyncCerebras(api_key=api_key, timeout=timeout_seconds)
 
-    async def complete(self, *, system_prompt: str, user_prompt: str) -> str:
+    async def complete(self, *, system_prompt: str, user_prompt: str, history: list[dict[str, str]] | None = None) -> str:
         try:
             response = await self._client.chat.completions.create(
                 model=self.model,
-                messages=self._messages(system_prompt, user_prompt),
+                messages=self._messages(system_prompt, user_prompt, history),
                 temperature=self._temperature,
                 max_completion_tokens=self._max_tokens,
             )
@@ -58,11 +58,11 @@ class CerebrasLlmProvider:
 
         return _first_choice_content(response)
 
-    async def stream(self, *, system_prompt: str, user_prompt: str) -> AsyncIterator[str]:
+    async def stream(self, *, system_prompt: str, user_prompt: str, history: list[dict[str, str]] | None = None) -> AsyncIterator[str]:
         try:
             stream = await self._client.chat.completions.create(
                 model=self.model,
-                messages=self._messages(system_prompt, user_prompt),
+                messages=self._messages(system_prompt, user_prompt, history),
                 temperature=self._temperature,
                 max_completion_tokens=self._max_tokens,
                 stream=True,
@@ -79,11 +79,12 @@ class CerebrasLlmProvider:
             raise LlmProviderError(f"Cerebras stream failed: {exc}") from exc
 
     @staticmethod
-    def _messages(system_prompt: str, user_prompt: str) -> list[dict[str, str]]:
-        return [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_prompt},
-        ]
+    def _messages(system_prompt: str, user_prompt: str, history: list[dict[str, str]] | None = None) -> list[dict[str, str]]:
+        msgs = [{"role": "system", "content": system_prompt}]
+        if history:
+            msgs.extend(history)
+        msgs.append({"role": "user", "content": user_prompt})
+        return msgs
 
 
 def _first_choice_content(response: Any) -> str:

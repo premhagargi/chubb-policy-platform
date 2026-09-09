@@ -25,8 +25,8 @@ export class AiService {
     return this.http.get<AiHealth>(`${BASE_URL}/health`);
   }
 
-  ask(prompt: string, scope: AiScope): Observable<PromptResponse> {
-    return this.http.post<PromptResponse>(`${BASE_URL}/prompt`, { prompt, scope });
+  ask(prompt: string, scope: AiScope, history?: {role: string, content: string}[]): Observable<PromptResponse> {
+    return this.http.post<PromptResponse>(`${BASE_URL}/prompt`, { prompt, scope, history });
   }
 
   assessPolicy(policyId: string): Observable<RiskAssessment> {
@@ -48,7 +48,7 @@ export class AiService {
    * starting a new question cancels the in-flight generation instead of leaving it
    * running.
    */
-  askStream(prompt: string, scope: AiScope): Observable<AiStreamEvent> {
+  askStream(prompt: string, scope: AiScope, history?: {role: string, content: string}[]): Observable<AiStreamEvent> {
     return new Observable<AiStreamEvent>((subscriber) => {
       const controller = new AbortController();
 
@@ -57,7 +57,7 @@ export class AiService {
           const response = await fetch(`${BASE_URL}/prompt/stream`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ prompt, scope }),
+            body: JSON.stringify({ prompt, scope, history }),
             signal: controller.signal,
           });
 
