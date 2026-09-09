@@ -118,7 +118,7 @@ import { SpinnerComponent } from '../../../shared/ui/spinner.component';
             {{ assessment.recommendation }}
           </p>
 
-          @if (assessment.suggestFlag) {
+          @if (assessment.suggestFlag && !flagged()) {
             <button
               type="button"
               class="mt-2.5 flex h-8 w-full items-center justify-center gap-1.5 rounded-md text-[13px] font-medium transition-opacity hover:opacity-90 disabled:opacity-50"
@@ -150,6 +150,15 @@ export class AiRiskPanelComponent {
 
   readonly policyId = input.required<string>();
   readonly flagInFlight = input(false);
+
+  /**
+   * Live flag state of the policy, not the value captured when the assessment
+   * ran. The server suppresses `suggestFlag` for an already-flagged policy, but
+   * an assessment taken *before* the operator flagged it still carries
+   * `suggestFlag: true` — so the recommendation has to be re-checked against
+   * current state, or the button survives its own action.
+   */
+  readonly flagged = input(false);
 
   readonly flagSuggested = output<void>();
 

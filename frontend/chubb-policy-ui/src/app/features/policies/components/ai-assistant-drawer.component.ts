@@ -53,7 +53,7 @@ interface Turn {
       >
         <!-- Header -->
         <header
-          class="flex shrink-0 items-center gap-2.5 px-4 py-3.5"
+          class="flex shrink-0 items-center gap-2 px-3 py-2"
           style="border-bottom: 1px solid var(--border);"
         >
           <span class="flex items-center" style="color: var(--accent);">
@@ -166,7 +166,7 @@ interface Turn {
           style="background: var(--surface);"
           (ngSubmit)="submit()"
         >
-          @if (!streaming()) {
+          @if (!streaming() && turns().length === 0) {
             <div class="mb-2 flex flex-wrap gap-1.5">
               @for (suggestion of suggestions; track suggestion) {
                 <button
@@ -294,7 +294,7 @@ export class AiAssistantDrawerComponent {
   /** One per supported question type: summary, statistics, single-policy lookup. */
   protected readonly suggestions = [
     'Summarise this portfolio',
-    'What is the premium split by region?',
+    'Top regions by premium',
     'Which policies need attention first?',
   ];
 

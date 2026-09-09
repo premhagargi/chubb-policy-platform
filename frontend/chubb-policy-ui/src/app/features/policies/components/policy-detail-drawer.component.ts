@@ -105,7 +105,7 @@ interface Field {
 
               @for (section of sections(); track section.title) {
                 <section class="mt-5">
-                  <h3 class="text-[11px] font-medium uppercase tracking-wide" style="color: var(--text-muted);">
+                  <h3 class="text-[11px] font-medium uppercase tracking-wide" style="color: var(--text);">
                     {{ section.title }}
                   </h3>
                   <dl class="mt-2.5 space-y-2.5">
@@ -125,6 +125,7 @@ interface Field {
 
               <app-ai-risk-panel
                 [policyId]="p.id"
+                [flagged]="p.flaggedForReview"
                 [flagInFlight]="flagInFlight()"
                 (flagSuggested)="flag.emit(p)"
               />
