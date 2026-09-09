@@ -34,6 +34,9 @@ describe('PolicyService', () => {
     const req = httpMock.expectOne(
       (r) => r.params.get('status') === 'Active' && r.params.get('search') === 'PCL-1'
     );
+    expect(req.request.url).toBe('/api/v1/policies');
+    // Unset filters must be omitted, not sent as empty strings.
+    expect(req.request.params.has('region')).toBe(false);
     req.flush({ items: [], page: 1, size: 20, totalCount: 0, totalPages: 0 });
   });
 

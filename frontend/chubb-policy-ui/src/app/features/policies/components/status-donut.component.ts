@@ -23,6 +23,7 @@ const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 
 /** Status mix as a donut. Percentages are computed from countsByStatus — no invented data. */
 @Component({
+  standalone: true,
   selector: 'app-status-donut',
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `

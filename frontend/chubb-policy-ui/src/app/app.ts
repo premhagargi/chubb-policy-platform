@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 
 @Component({
+  standalone: true,
   selector: 'app-root',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [RouterOutlet],

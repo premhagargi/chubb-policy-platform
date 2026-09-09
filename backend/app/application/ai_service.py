@@ -35,6 +35,8 @@ from app.application.ai_dto import (
 from app.application.dto import PolicyDto
 from app.application.filters import PolicyFilter
 from app.application.ports import LlmProvider, PolicyQueryService
+from app.application.references import MAX_POLICIES as MAX_REFERENCED_POLICIES
+from app.application.references import extract_search_terms
 from app.application.prompts import (
     BRIEF_SYSTEM,
     COPILOT_SYSTEM,
@@ -55,6 +57,10 @@ logger = logging.getLogger(__name__)
 #: model to cite real records, small enough to keep the prompt bounded.
 CONTEXT_SAMPLE_SIZE = 12
 
+#: Rows fetched per resolved reference term. Small: a policy number matches one
+#: row, and a name match beyond a handful is noise rather than context.
+REFERENCE_LOOKUP_SIZE = 4
+
 
 class AiService:
     def __init__(
@@ -73,7 +79,7 @@ class AiService:
     # ----- Feature 1: Policy Copilot ------------------------------------- #
 
     async def answer_prompt(self, question: str, scope: PolicyFilter) -> PromptResponse:
-        context = await self._portfolio_context(scope)
+        context = await self._portfolio_context(scope, question=question)
         user_prompt = build_copilot_user_prompt(question, context)
 
         answer, usage = await self._complete(
@@ -95,7 +101,7 @@ class AiService:
         Not cached: a cache hit would defeat the purpose of streaming, and the
         non-streaming endpoint already covers repeat questions.
         """
-        context = await self._portfolio_context(scope)
+        context = await self._portfolio_context(scope, question=question)
         user_prompt = build_copilot_user_prompt(question, context)
 
         async for token in self._provider.stream(
@@ -145,12 +151,25 @@ class AiService:
 
     # ----- internals ------------------------------------------------------ #
 
-    async def _portfolio_context(self, scope: PolicyFilter) -> str:
+    async def _portfolio_context(self, scope: PolicyFilter, *, question: str | None = None) -> str:
         """Read aggregates plus a bounded sample through the cached query
-        service - the AI path pays the same cache benefit as the REST path."""
-        summary = await self._queries.get_summary(scope)
+        service - the AI path pays the same cache benefit as the REST path.
 
-        sample_request = PolicyFilter(
+        When the question names a specific policy (a number, a quoted term, a
+        policyholder), those records are looked up and appended: the statistical
+        sample almost never contains the one row the user asked about, and
+        without this the model can only say the context lacks it.
+        """
+        summary = await self._queries.get_summary(scope)
+        page = await self._queries.get_policies(self._sample_filter(scope))
+
+        referenced = await self._referenced_policies(question, scope) if question else []
+
+        return build_portfolio_context(summary, page.items, scope, referenced=referenced)
+
+    def _sample_filter(self, scope: PolicyFilter, **overrides) -> PolicyFilter:
+        """A copy of the scope with paging/sort set for context building."""
+        base = dict(
             page=1,
             size=CONTEXT_SAMPLE_SIZE,
             sort="premiumAmount,desc",
@@ -162,9 +181,33 @@ class AiService:
             search=scope.search,
             flagged=scope.flagged,
         )
-        page = await self._queries.get_policies(sample_request)
+        return PolicyFilter(**{**base, **overrides})
 
-        return build_portfolio_context(summary, page.items, scope)
+    async def _referenced_policies(self, question: str, scope: PolicyFilter) -> list[PolicyDto]:
+        """Resolve entities named in the question to actual policy records.
+
+        Lookups run against the *unscoped* register rather than the active
+        filter: asking about a policy number while the Flagged view is open
+        should still find it, and answering "that policy is not in your current
+        filter" is more useful than "I have no record of it".
+        """
+        terms = extract_search_terms(question)
+        if not terms:
+            return []
+
+        found: dict[uuid.UUID, PolicyDto] = {}
+
+        for term in terms:
+            page = await self._queries.get_policies(
+                PolicyFilter(page=1, size=REFERENCE_LOOKUP_SIZE, sort="premiumAmount,desc", search=term)
+            )
+            for policy in page.items:
+                found.setdefault(policy.id, policy)
+
+            if len(found) >= MAX_REFERENCED_POLICIES:
+                break
+
+        return list(found.values())[:MAX_REFERENCED_POLICIES]
 
     async def _complete(
         self, *, task: str, system_prompt: str, user_prompt: str

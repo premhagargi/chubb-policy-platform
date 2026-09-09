@@ -29,10 +29,20 @@ _GROUNDING = (
 COPILOT_SYSTEM = (
     "TASK: COPILOT\n"
     "You are an insurance operations analyst embedded in Chubb's APAC policy "
-    "management dashboard. You help underwriting and operations staff understand the "
-    "policy set they are currently looking at.\n"
+    "management dashboard. You help underwriting and operations staff with three "
+    "kinds of question:\n"
+    "1. Details of a specific policy, referenced by policy number or policyholder "
+    "name. Records matching terms in the question are supplied under POLICIES "
+    "MATCHING TERMS IN THE QUESTION - answer from those.\n"
+    "2. Summaries of the set currently in view.\n"
+    "3. Statistics - counts, totals and distributions - taken from the aggregates.\n"
     f"{_GROUNDING}\n"
-    "Format the answer as short prose or a handful of bullets. Do not use headings."
+    "If a policy the user named is not present in the context, say it was not found "
+    "rather than describing a different one.\n"
+    "FORMATTING: reply in concise Markdown. Use `-` bullets for lists, `**bold**` for "
+    "the figures and policy numbers that matter, and short paragraphs otherwise. Keep "
+    "answers under about 150 words unless more detail is asked for. No headings, no "
+    "tables, no code fences."
 )
 
 RISK_SYSTEM = (
@@ -55,9 +65,9 @@ BRIEF_SYSTEM = (
     "You are writing a short executive brief for an insurance operations lead about "
     "the policy portfolio currently in view.\n"
     f"{_GROUNDING}\n"
-    "Respond with exactly three bullets, each one sentence: (1) the shape of the "
-    "book, (2) the most pressing operational risk, (3) a concrete next action. "
-    "No preamble, no heading."
+    "Respond with exactly three Markdown bullets (`-`), each one sentence: (1) the "
+    "shape of the book, (2) the most pressing operational risk, (3) a concrete next "
+    "action. Use `**bold**` for the figures that matter. No preamble, no heading."
 )
 
 
@@ -95,6 +105,7 @@ def build_portfolio_context(
     summary: PolicySummaryDto,
     sample: list[PolicyDto],
     request: PolicyFilter,
+    referenced: list[PolicyDto] | None = None,
 ) -> str:
     """Compact, token-cheap rendering of the filtered set.
 
@@ -121,17 +132,42 @@ def build_portfolio_context(
 
     if sample:
         lines.append("")
-        lines.append(f"Sample of {len(sample)} policies from this set:")
-        for policy in sample:
-            lines.append(
-                f"- {policy.policy_number} | {policy.policyholder_name} | "
-                f"{policy.line_of_business} | {policy.status} | "
-                f"{_money(policy.premium_amount)} {policy.currency} | {policy.region} | "
-                f"expires {policy.expiry_date}"
-                + (" | FLAGGED" if policy.flagged_for_review else "")
-            )
+        lines.append(f"Sample of {len(sample)} policies from this set (highest premium first):")
+        lines.extend(_policy_line(policy) for policy in sample)
+
+    if referenced:
+        # Full field detail, not the one-line form: these are the records the
+        # question actually asked about, so the model has every attribute it
+        # might be asked to quote.
+        lines.append("")
+        lines.append(
+            "POLICIES MATCHING TERMS IN THE QUESTION "
+            "(searched across the whole register, so some may fall outside the filter above):"
+        )
+        for policy in referenced:
+            lines.append("")
+            lines.append(f"- Policy number: {policy.policy_number}")
+            lines.append(f"  Policyholder: {policy.policyholder_name}")
+            lines.append(f"  Line of business: {policy.line_of_business}")
+            lines.append(f"  Status: {policy.status}")
+            lines.append(f"  Premium: {_money(policy.premium_amount)} {policy.currency}")
+            lines.append(f"  Region: {policy.region}")
+            lines.append(f"  Underwriter: {policy.underwriter}")
+            lines.append(f"  Effective date: {policy.effective_date}")
+            lines.append(f"  Expiry date: {policy.expiry_date}")
+            lines.append(f"  Flagged for review: {policy.flagged_for_review}")
 
     return "\n".join(lines)
+
+
+def _policy_line(policy: PolicyDto) -> str:
+    return (
+        f"- {policy.policy_number} | {policy.policyholder_name} | "
+        f"{policy.line_of_business} | {policy.status} | "
+        f"{_money(policy.premium_amount)} {policy.currency} | {policy.region} | "
+        f"underwriter {policy.underwriter} | expires {policy.expiry_date}"
+        + (" | FLAGGED" if policy.flagged_for_review else "")
+    )
 
 
 def build_copilot_user_prompt(question: str, context: str) -> str:

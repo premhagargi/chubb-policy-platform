@@ -3,6 +3,7 @@ import { IconComponent } from './icon.component';
 import { ToastService } from '../../core/services/toast.service';
 
 @Component({
+  standalone: true,
   selector: 'app-toast-host',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [IconComponent],

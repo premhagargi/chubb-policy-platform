@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, input, output } from '@an
 import { Policy } from '../../../core/models/policy.model';
 import { IconComponent } from '../../../shared/ui/icon.component';
 import { StatusBadgeComponent } from '../../../shared/ui/status-badge.component';
+import { AiRiskPanelComponent } from './ai-risk-panel.component';
 import { daysUntil, formatCurrency, formatDate } from '../../../shared/utils/format';
 
 interface Field {
@@ -10,9 +11,10 @@ interface Field {
 }
 
 @Component({
+  standalone: true,
   selector: 'app-policy-detail-drawer',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [IconComponent, StatusBadgeComponent],
+  imports: [IconComponent, StatusBadgeComponent, AiRiskPanelComponent],
   host: { '(document:keydown.escape)': 'close.emit()' },
   template: `
     @if (policy(); as p) {
@@ -120,6 +122,12 @@ interface Field {
                   </dl>
                 </section>
               }
+
+              <app-ai-risk-panel
+                [policyId]="p.id"
+                [flagInFlight]="flagInFlight()"
+                (flagSuggested)="flag.emit(p)"
+              />
             }
           </div>
 

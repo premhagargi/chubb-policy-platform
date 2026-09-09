@@ -20,6 +20,7 @@ interface Kpi {
  * "↑ 4.2% vs last month" would put fabricated business numbers in front of stakeholders.
  */
 @Component({
+  standalone: true,
   selector: 'app-kpi-grid',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [IconComponent],

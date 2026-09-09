@@ -24,11 +24,9 @@ describe('StorageService', () => {
   });
 
   it('does not throw when localStorage.getItem throws', () => {
-    const spy = vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
-      throw new Error('blocked');
-    });
+    // Jasmine restores spies automatically after each spec, so no manual teardown.
+    spyOn(Storage.prototype, 'getItem').and.throwError('blocked');
 
     expect(service.get('key')).toBeNull();
-    spy.mockRestore();
   });
 });

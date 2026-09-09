@@ -6,6 +6,7 @@ import { ToastHostComponent } from '../shared/ui/toast-host.component';
 
 /** Persistent chrome: sidebar + header stay mounted, only the outlet swaps. */
 @Component({
+  standalone: true,
   selector: 'app-shell',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [RouterOutlet, SidebarComponent, TopHeaderComponent, ToastHostComponent],

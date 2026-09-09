@@ -4,6 +4,8 @@ import { PolicyFilter } from '../../core/models/policy-filter.model';
 import { ToastService } from '../../core/services/toast.service';
 import { IconComponent } from '../../shared/ui/icon.component';
 import { formatCurrency, formatDate, formatRelativeTime } from '../../shared/utils/format';
+import { AiBriefCardComponent } from './components/ai-brief-card.component';
+import { AiAssistantDrawerComponent } from './components/ai-assistant-drawer.component';
 import { DistributionChartComponent } from './components/distribution-chart.component';
 import { FlagDialogComponent } from './components/flag-dialog.component';
 import { KpiGridComponent } from './components/kpi-grid.component';
@@ -20,6 +22,7 @@ import { PolicyStateService } from './policy-state.service';
  * table, filters and drawer behave identically everywhere.
  */
 @Component({
+  standalone: true,
   selector: 'app-policies-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
   providers: [PolicyStateService],
@@ -33,6 +36,8 @@ import { PolicyStateService } from './policy-state.service';
     PolicyPaginationComponent,
     PolicyDetailDrawerComponent,
     FlagDialogComponent,
+    AiBriefCardComponent,
+    AiAssistantDrawerComponent,
   ],
   template: `
     <div class="mx-auto max-w-[1600px] p-4 lg:p-6">
@@ -46,6 +51,18 @@ import { PolicyStateService } from './policy-state.service';
         </div>
 
         <div class="flex items-center gap-2">
+          <button
+            type="button"
+            class="flex h-8 items-center gap-1.5 rounded-md border px-3 text-[13px] font-medium transition-colors hover:bg-[var(--surface-hover)]"
+            style="background: var(--surface); border-color: var(--border); color: var(--text);"
+            [attr.aria-expanded]="assistantOpen()"
+            aria-controls="policy-copilot"
+            (click)="assistantOpen.set(!assistantOpen())"
+          >
+            <app-icon name="sparkle" [size]="14" />
+            Ask Copilot
+          </button>
+
           @if (state.lastUpdated(); as updated) {
             <span class="text-xs" style="color: var(--text-subtle);">
               Last updated {{ relativeTime(updated) }}
@@ -104,7 +121,12 @@ import { PolicyStateService } from './policy-state.service';
             <app-status-donut [summary]="state.summary()" [loading]="state.isFirstLoad()" />
             <app-distribution-chart [summary]="state.summary()" [loading]="state.isFirstLoad()" />
           </div>
+
+          <div class="mb-4">
+            <app-ai-brief-card [filter]="state.filter()" />
+          </div>
         }
+
 
         @if (showTable()) {
           <section class="surface-card overflow-hidden">
@@ -216,6 +238,13 @@ import { PolicyStateService } from './policy-state.service';
       }
     </div>
 
+    <app-ai-assistant-drawer
+      id="policy-copilot"
+      [open]="assistantOpen()"
+      [filter]="state.filter()"
+      (close)="assistantOpen.set(false)"
+    />
+
     <app-policy-detail-drawer
       [policy]="state.detail()"
       [loading]="state.detailLoading()"
@@ -244,6 +273,7 @@ export class PoliciesPageComponent implements OnInit {
   readonly showTable = input(true);
   readonly seedFilter = input<Partial<PolicyFilter> | null>(null);
 
+  protected readonly assistantOpen = signal(false);
   protected readonly flagDialogOpen = signal(false);
   protected readonly pendingFlagIds = signal<string[]>([]);
 

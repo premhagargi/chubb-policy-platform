@@ -25,6 +25,7 @@ interface Chip {
 }
 
 @Component({
+  standalone: true,
   selector: 'app-policy-toolbar',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [FormsModule, IconComponent],

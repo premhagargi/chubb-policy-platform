@@ -3,6 +3,7 @@ import { ThemeService, ThemePreference } from '../../core/services/theme.service
 import { IconComponent } from '../../shared/ui/icon.component';
 
 @Component({
+  standalone: true,
   selector: 'app-settings-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [IconComponent],

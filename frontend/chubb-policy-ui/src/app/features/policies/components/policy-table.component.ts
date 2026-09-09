@@ -26,6 +26,7 @@ const COLUMNS: Column[] = [
 ];
 
 @Component({
+  standalone: true,
   selector: 'app-policy-table',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [IconComponent, StatusBadgeComponent],

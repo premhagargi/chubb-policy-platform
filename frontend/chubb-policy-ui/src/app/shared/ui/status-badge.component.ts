@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component, computed, input } from '@angular/co
 /** Status pill. A coloured dot carries the same information as the tint, so status is
  *  never communicated by colour alone. */
 @Component({
+  standalone: true,
   selector: 'app-status-badge',
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `

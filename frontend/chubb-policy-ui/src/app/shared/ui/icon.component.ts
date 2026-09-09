@@ -25,11 +25,14 @@ export type IconName =
   | 'sun'
   | 'moon'
   | 'calendar'
-  | 'clock';
+  | 'clock'
+  | 'sparkle'
+  | 'send';
 
 /** One inline-SVG sprite so icon sizing and stroke weight stay identical everywhere.
  *  All paths are 24×24, 1.5 stroke, round caps — matching one consistent icon set. */
 @Component({
+  standalone: true,
   selector: 'app-icon',
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -137,6 +140,13 @@ export type IconName =
         @case ('clock') {
           <circle cx="12" cy="12" r="9" />
           <path d="M12 7v5l3 2" />
+        }
+        @case ('sparkle') {
+          <path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z" />
+          <path d="M18.5 15.5l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7z" />
+        }
+        @case ('send') {
+          <path d="M21 3L10.5 13.5M21 3l-6.6 18-3.9-7.5L3 9.6z" />
         }
       }
     </svg>

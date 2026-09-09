@@ -1,269 +1,892 @@
-openapi: 3.0.3
+# Generated from the FastAPI application - do not edit by hand.
+# Regenerate with: python scripts/export_openapi.py
+
+openapi: 3.1.0
 info:
   title: Chubb APAC Policy Management Platform API
-  description: >
-    BFF API for managing insurance policies across Chubb APAC regions. Contract-first:
-    this document is the source of truth and was written before implementation.
+  description: Policy register, portfolio analytics and AI-assisted underwriting review for Chubb's APAC
+    book. All endpoints are versioned under /api/v1.
   version: 1.0.0
-servers:
-  - url: /api/v1
-
-tags:
-  - name: Policies
-
 paths:
-  /policies:
+  /api/v1/policies:
     get:
-      tags: [Policies]
-      summary: List policies with pagination, sorting, filtering, and free-text search
-      operationId: listPolicies
+      tags:
+      - Policies
+      summary: List policies
+      description: Filter, search, sort and page the policy register.
+      operationId: list_policies_api_v1_policies_get
       parameters:
-        - $ref: '#/components/parameters/Page'
-        - $ref: '#/components/parameters/Size'
-        - $ref: '#/components/parameters/Sort'
-        - name: status
-          in: query
-          schema: { $ref: '#/components/schemas/PolicyStatus' }
-        - name: lineOfBusiness
-          in: query
-          schema: { $ref: '#/components/schemas/LineOfBusiness' }
-        - name: region
-          in: query
-          schema: { $ref: '#/components/schemas/Region' }
-        - name: effectiveDateFrom
-          in: query
-          schema: { type: string, format: date }
-        - name: effectiveDateTo
-          in: query
-          schema: { type: string, format: date }
-        - name: search
-          in: query
-          description: Free-text search across policyNumber, policyholderName, underwriter
-          schema: { type: string }
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          description: 1-based page number.
+          default: 1
+          title: Page
+        description: 1-based page number.
+      - name: size
+        in: query
+        required: false
+        schema:
+          type: integer
+          description: Page size (1-100).
+          default: 20
+          title: Size
+        description: Page size (1-100).
+      - name: sort
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: e.g. "premiumAmount,desc".
+          title: Sort
+        description: e.g. "premiumAmount,desc".
+      - name: status
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Status
+      - name: lineOfBusiness
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Lineofbusiness
+      - name: region
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Region
+      - name: effectiveDateFrom
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Effectivedatefrom
+      - name: effectiveDateTo
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Effectivedateto
+      - name: search
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Search
+      - name: flagged
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Flagged
       responses:
         '200':
-          description: Paged list of policies
+          description: Successful Response
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/PagedPolicyResult' }
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '500':
-          $ref: '#/components/responses/ServerError'
-
-  /policies/{id}:
+              schema:
+                $ref: '#/components/schemas/PagedResult_PolicyDto_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/policies/summary:
     get:
-      tags: [Policies]
-      summary: Retrieve a single policy by id
-      operationId: getPolicyById
+      tags:
+      - Policies
+      summary: Portfolio summary
+      description: Aggregations over the same filtered set as GET /policies, so the KPIs always describe
+        exactly what the caller is looking at.
+      operationId: get_summary_api_v1_policies_summary_get
       parameters:
-        - name: id
-          in: path
-          required: true
-          schema: { type: string, format: uuid }
+      - name: status
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Status
+      - name: lineOfBusiness
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Lineofbusiness
+      - name: region
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Region
+      - name: effectiveDateFrom
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Effectivedatefrom
+      - name: effectiveDateTo
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Effectivedateto
+      - name: search
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Search
+      - name: flagged
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Flagged
       responses:
         '200':
-          description: The requested policy
+          description: Successful Response
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/Policy' }
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/ServerError'
-
-  /policies/flag:
-    patch:
-      tags: [Policies]
-      summary: Bulk-flag policies for review
-      operationId: flagPolicies
-      requestBody:
+              schema:
+                $ref: '#/components/schemas/PolicySummaryDto'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/policies/{policy_id}:
+    get:
+      tags:
+      - Policies
+      summary: Get a policy by id
+      operationId: get_policy_api_v1_policies__policy_id__get
+      parameters:
+      - name: policy_id
+        in: path
         required: true
+        schema:
+          type: string
+          format: uuid
+          title: Policy Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PolicyDto'
+        '404':
+          description: No policy with that id.
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/policies/flag:
+    patch:
+      tags:
+      - Policies
+      summary: Flag policies for review
+      description: 'Idempotent: flagging an already-flagged policy is a no-op that still reports it.'
+      operationId: flag_policies_api_v1_policies_flag_patch
+      requestBody:
         content:
           application/json:
-            schema: { $ref: '#/components/schemas/FlagPoliciesRequest' }
+            schema:
+              $ref: '#/components/schemas/FlagPoliciesRequest'
+        required: true
       responses:
         '200':
-          description: >
-            Flag applied to whichever of the supplied ids exist. Non-existent ids are
-            silently omitted from flaggedPolicyIds rather than causing a 404 — the
-            response reports exactly which ids were affected so the caller can detect
-            partial success.
+          description: Successful Response
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/FlagPoliciesResponse' }
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '500':
-          $ref: '#/components/responses/ServerError'
-
-  /policies/summary:
+              schema:
+                $ref: '#/components/schemas/FlagPoliciesResult'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/ai/health:
     get:
-      tags: [Policies]
-      summary: Aggregated policy statistics, respecting the same filters as the list endpoint
-      operationId: getPolicySummary
-      parameters:
-        - name: status
-          in: query
-          schema: { $ref: '#/components/schemas/PolicyStatus' }
-        - name: lineOfBusiness
-          in: query
-          schema: { $ref: '#/components/schemas/LineOfBusiness' }
-        - name: region
-          in: query
-          schema: { $ref: '#/components/schemas/Region' }
-        - name: effectiveDateFrom
-          in: query
-          schema: { type: string, format: date }
-        - name: effectiveDateTo
-          in: query
-          schema: { type: string, format: date }
-        - name: search
-          in: query
-          schema: { type: string }
+      tags:
+      - AI
+      summary: Which provider and model are answering
+      operationId: ai_health_api_v1_ai_health_get
       responses:
         '200':
-          description: Aggregated statistics for the filtered policy set
+          description: Successful Response
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/PolicySummary' }
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '500':
-          $ref: '#/components/responses/ServerError'
+              schema:
+                $ref: '#/components/schemas/AiHealthResponse'
+  /api/v1/ai/prompt:
+    post:
+      tags:
+      - AI
+      summary: Ask the Policy Copilot a question
+      description: Grounds the question in the caller's current filter - the summary aggregates plus a
+        bounded sample of matching policies - then answers from that context.
+      operationId: ask_api_v1_ai_prompt_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PromptRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PromptResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/ai/prompt/stream:
+    post:
+      tags:
+      - AI
+      summary: Ask the Policy Copilot, streamed token by token
+      operationId: ask_streaming_api_v1_ai_prompt_stream_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PromptRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            text/event-stream: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/ai/policies/{policy_id}/risk-assessment:
+    post:
+      tags:
+      - AI
+      summary: AI underwriting risk triage for one policy
+      description: Returns a structured assessment (score, band, factors, recommendation). `suggestFlag`
+        is true when the model judges the policy worth flagging and it is not flagged already, which the
+        UI offers as a one-click action.
+      operationId: assess_policy_api_v1_ai_policies__policy_id__risk_assessment_post
+      parameters:
+      - name: policy_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Policy Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RiskAssessmentResponse'
+        '404':
+          description: No policy with that id.
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/ai/portfolio-brief:
+    post:
+      tags:
+      - AI
+      summary: Three-bullet executive brief over the current filter
+      operationId: portfolio_brief_api_v1_ai_portfolio_brief_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PortfolioBriefRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PortfolioBriefResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/cache/stats:
+    get:
+      tags:
+      - System
+      summary: In-memory cache statistics
+      description: 'Makes the caching layer observable rather than merely asserted - issue the
 
+        same request twice and `hits` increments.'
+      operationId: cache_stats_api_v1_cache_stats_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CacheStatsDto'
+  /api/v1/cache/clear:
+    post:
+      tags:
+      - System
+      summary: Evict every cache entry
+      description: Exposed so a demo can show a cold-vs-warm comparison on demand.
+      operationId: clear_cache_api_v1_cache_clear_post
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CacheStatsDto'
+  /api/v1/health:
+    get:
+      tags:
+      - System
+      summary: Liveness and database readiness
+      operationId: health_api_v1_health_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties:
+                  type: string
+                type: object
+                title: Response Health Api V1 Health Get
+  /health:
+    get:
+      tags:
+      - System
+      summary: Process liveness
+      description: 'Unversioned liveness probe for container orchestration.
+
+        `/api/v1/health` additionally verifies database reachability.'
+      operationId: health_health_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties:
+                  type: string
+                type: object
+                title: Response Health Health Get
 components:
-  parameters:
-    Page:
-      name: page
-      in: query
-      schema: { type: integer, minimum: 1, default: 1 }
-    Size:
-      name: size
-      in: query
-      schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
-    Sort:
-      name: sort
-      in: query
-      description: >
-        "<field>,<asc|desc>", e.g. "premiumAmount,desc". Allowed fields: policyNumber,
-        policyholderName, lineOfBusiness, status, premiumAmount, effectiveDate,
-        expiryDate, region, underwriter, createdAt. Unknown fields are rejected with 400.
-      schema: { type: string, default: "createdAt,desc" }
-
-  responses:
-    BadRequest:
-      description: Validation error
-      content:
-        application/json:
-          schema: { $ref: '#/components/schemas/ErrorResponse' }
-    NotFound:
-      description: Resource not found
-      content:
-        application/json:
-          schema: { $ref: '#/components/schemas/ErrorResponse' }
-    ServerError:
-      description: Unexpected server error
-      content:
-        application/json:
-          schema: { $ref: '#/components/schemas/ErrorResponse' }
-
   schemas:
-    PolicyStatus:
-      type: string
-      enum: [Active, Expired, Pending, Cancelled]
-
-    LineOfBusiness:
-      type: string
-      enum: [Property, Casualty, A&H, Marine]
-
-    Currency:
-      type: string
-      enum: [USD, SGD, HKD, AUD, JPY, THB]
-
-    Region:
-      type: string
-      enum: [Singapore, "Hong Kong", Australia, Japan, Thailand, Indonesia, Malaysia, Philippines]
-
-    Policy:
+    AiHealthResponse:
+      properties:
+        provider:
+          type: string
+          title: Provider
+        model:
+          type: string
+          title: Model
+        liveInference:
+          type: boolean
+          title: Liveinference
+        detail:
+          type: string
+          title: Detail
       type: object
       required:
-        - id, policyNumber, policyholderName, lineOfBusiness, status, premiumAmount,
-          currency, effectiveDate, expiryDate, region, underwriter, flaggedForReview,
-          createdAt, updatedAt
+      - provider
+      - model
+      - liveInference
+      - detail
+      title: AiHealthResponse
+    AiScope:
       properties:
-        id: { type: string, format: uuid }
-        policyNumber: { type: string, example: "PCL-482913" }
-        policyholderName: { type: string }
-        lineOfBusiness: { $ref: '#/components/schemas/LineOfBusiness' }
-        status: { $ref: '#/components/schemas/PolicyStatus' }
-        premiumAmount: { type: number, format: decimal, minimum: 1000, maximum: 5000000 }
-        currency: { $ref: '#/components/schemas/Currency' }
-        effectiveDate: { type: string, format: date }
-        expiryDate: { type: string, format: date }
-        region: { $ref: '#/components/schemas/Region' }
-        underwriter: { type: string }
-        flaggedForReview: { type: boolean, default: false }
-        createdAt: { type: string, format: date-time }
-        updatedAt: { type: string, format: date-time }
-
-    PagedPolicyResult:
+        status:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Status
+        lineOfBusiness:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Lineofbusiness
+        region:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Region
+        effectiveDateFrom:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Effectivedatefrom
+        effectiveDateTo:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Effectivedateto
+        search:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Search
+        flagged:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Flagged
       type: object
-      required: [items, page, size, totalCount, totalPages]
-      properties:
-        items:
-          type: array
-          items: { $ref: '#/components/schemas/Policy' }
-        page: { type: integer }
-        size: { type: integer }
-        totalCount: { type: integer }
-        totalPages: { type: integer }
+      title: AiScope
+      description: 'The filter the user currently has applied in the UI.
 
+
+        Sent with every AI request so the model answers about the set on screen
+
+        rather than the whole book - the difference between a demo and a feature.
+
+        Mirrors the query parameters of GET /policies, minus paging and sort.'
+    AiUsage:
+      properties:
+        provider:
+          type: string
+          title: Provider
+        model:
+          type: string
+          title: Model
+        latencyMs:
+          type: integer
+          title: Latencyms
+        cached:
+          type: boolean
+          title: Cached
+      type: object
+      required:
+      - provider
+      - model
+      - latencyMs
+      - cached
+      title: AiUsage
+      description: 'Provenance for every AI response.
+
+
+        Surfaced in the UI rather than logged only: a reviewer can see which
+
+        provider and model answered, whether the answer came from the in-memory
+
+        cache, and how long it took - which is also the evidence that the caching
+
+        requirement is doing something.'
+    CacheStatsDto:
+      properties:
+        hits:
+          type: integer
+          title: Hits
+        misses:
+          type: integer
+          title: Misses
+        hitRate:
+          type: number
+          title: Hitrate
+        entries:
+          type: integer
+          title: Entries
+        generation:
+          type: integer
+          title: Generation
+        evictions:
+          type: integer
+          title: Evictions
+      type: object
+      required:
+      - hits
+      - misses
+      - hitRate
+      - entries
+      - generation
+      - evictions
+      title: CacheStatsDto
     FlagPoliciesRequest:
-      type: object
-      required: [policyIds]
       properties:
         policyIds:
+          items:
+            type: string
+            format: uuid
           type: array
-          minItems: 1
           maxItems: 500
-          items: { type: string, format: uuid }
-
-    FlagPoliciesResponse:
+          minItems: 1
+          title: Policyids
       type: object
-      required: [flaggedPolicyIds, flaggedCount]
+      required:
+      - policyIds
+      title: FlagPoliciesRequest
+    FlagPoliciesResult:
       properties:
         flaggedPolicyIds:
+          items:
+            type: string
+            format: uuid
           type: array
-          items: { type: string, format: uuid }
-        flaggedCount: { type: integer }
-
-    PolicySummary:
+          title: Flaggedpolicyids
+        flaggedCount:
+          type: integer
+          title: Flaggedcount
+          readOnly: true
       type: object
-      required: [countsByStatus, premiumByLineOfBusiness, expiringSoonCount]
+      required:
+      - flaggedPolicyIds
+      - flaggedCount
+      title: FlagPoliciesResult
+    HTTPValidationError:
+      properties:
+        detail:
+          items:
+            $ref: '#/components/schemas/ValidationError'
+          type: array
+          title: Detail
+      type: object
+      title: HTTPValidationError
+    PagedResult_PolicyDto_:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/PolicyDto'
+          type: array
+          title: Items
+        page:
+          type: integer
+          title: Page
+        size:
+          type: integer
+          title: Size
+        totalCount:
+          type: integer
+          title: Totalcount
+        totalPages:
+          type: integer
+          title: Totalpages
+          readOnly: true
+      type: object
+      required:
+      - items
+      - page
+      - size
+      - totalCount
+      - totalPages
+      title: PagedResult[PolicyDto]
+    PolicyDto:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        policyNumber:
+          type: string
+          title: Policynumber
+        policyholderName:
+          type: string
+          title: Policyholdername
+        lineOfBusiness:
+          type: string
+          title: Lineofbusiness
+        status:
+          type: string
+          title: Status
+        premiumAmount:
+          type: number
+          title: Premiumamount
+        currency:
+          type: string
+          title: Currency
+        effectiveDate:
+          type: string
+          format: date
+          title: Effectivedate
+        expiryDate:
+          type: string
+          format: date
+          title: Expirydate
+        region:
+          type: string
+          title: Region
+        underwriter:
+          type: string
+          title: Underwriter
+        flaggedForReview:
+          type: boolean
+          title: Flaggedforreview
+        createdAt:
+          type: string
+          format: date-time
+          title: Createdat
+        updatedAt:
+          type: string
+          format: date-time
+          title: Updatedat
+      type: object
+      required:
+      - id
+      - policyNumber
+      - policyholderName
+      - lineOfBusiness
+      - status
+      - premiumAmount
+      - currency
+      - effectiveDate
+      - expiryDate
+      - region
+      - underwriter
+      - flaggedForReview
+      - createdAt
+      - updatedAt
+      title: PolicyDto
+    PolicySummaryDto:
       properties:
         countsByStatus:
+          additionalProperties:
+            type: integer
           type: object
-          additionalProperties: { type: integer }
-          example: { Active: 120, Expired: 40, Pending: 30, Cancelled: 10 }
+          title: Countsbystatus
         premiumByLineOfBusiness:
+          additionalProperties:
+            type: number
           type: object
-          additionalProperties: { type: number, format: decimal }
-          example: { Property: 1500000.00, Casualty: 900000.00 }
+          title: Premiumbylineofbusiness
         expiringSoonCount:
           type: integer
-          description: Active policies with expiryDate within the next 30 days
-
-    ErrorResponse:
-      type: object
-      required: [type, title, status, correlationId]
-      properties:
-        type: { type: string, example: "https://httpstatuses.io/400" }
-        title: { type: string, example: "One or more validation errors occurred." }
-        status: { type: integer, example: 400 }
-        correlationId: { type: string, format: uuid }
-        errors:
-          type: object
+          title: Expiringsooncount
+        flaggedCount:
+          type: integer
+          title: Flaggedcount
+        totalCount:
+          type: integer
+          title: Totalcount
+        countsByRegion:
           additionalProperties:
-            type: array
-            items: { type: string }
+            type: integer
+          type: object
+          title: Countsbyregion
+      type: object
+      required:
+      - countsByStatus
+      - premiumByLineOfBusiness
+      - expiringSoonCount
+      - flaggedCount
+      - totalCount
+      - countsByRegion
+      title: PolicySummaryDto
+    PortfolioBriefRequest:
+      properties:
+        scope:
+          anyOf:
+          - $ref: '#/components/schemas/AiScope'
+          - type: 'null'
+      type: object
+      title: PortfolioBriefRequest
+    PortfolioBriefResponse:
+      properties:
+        brief:
+          type: string
+          title: Brief
+        contextSummary:
+          type: string
+          title: Contextsummary
+        usage:
+          $ref: '#/components/schemas/AiUsage'
+        createdAt:
+          type: string
+          format: date-time
+          title: Createdat
+      type: object
+      required:
+      - brief
+      - contextSummary
+      - usage
+      - createdAt
+      title: PortfolioBriefResponse
+    PromptRequest:
+      properties:
+        prompt:
+          type: string
+          maxLength: 2000
+          minLength: 1
+          title: Prompt
+        scope:
+          anyOf:
+          - $ref: '#/components/schemas/AiScope'
+          - type: 'null'
+      type: object
+      required:
+      - prompt
+      title: PromptRequest
+    PromptResponse:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        prompt:
+          type: string
+          title: Prompt
+        answer:
+          type: string
+          title: Answer
+        contextSummary:
+          type: string
+          title: Contextsummary
+        usage:
+          $ref: '#/components/schemas/AiUsage'
+        createdAt:
+          type: string
+          format: date-time
+          title: Createdat
+      type: object
+      required:
+      - id
+      - prompt
+      - answer
+      - contextSummary
+      - usage
+      - createdAt
+      title: PromptResponse
+    RiskAssessmentResponse:
+      properties:
+        policyId:
+          type: string
+          format: uuid
+          title: Policyid
+        policyNumber:
+          type: string
+          title: Policynumber
+        riskScore:
+          type: integer
+          maximum: 100.0
+          minimum: 0.0
+          title: Riskscore
+        riskBand:
+          type: string
+          enum:
+          - Low
+          - Medium
+          - High
+          title: Riskband
+        factors:
+          items:
+            type: string
+          type: array
+          title: Factors
+        recommendation:
+          type: string
+          title: Recommendation
+        suggestFlag:
+          type: boolean
+          title: Suggestflag
+        summary:
+          type: string
+          title: Summary
+        usage:
+          $ref: '#/components/schemas/AiUsage'
+        createdAt:
+          type: string
+          format: date-time
+          title: Createdat
+      type: object
+      required:
+      - policyId
+      - policyNumber
+      - riskScore
+      - riskBand
+      - factors
+      - recommendation
+      - suggestFlag
+      - summary
+      - usage
+      - createdAt
+      title: RiskAssessmentResponse
+    ValidationError:
+      properties:
+        loc:
+          items:
+            anyOf:
+            - type: string
+            - type: integer
+          type: array
+          title: Location
+        msg:
+          type: string
+          title: Message
+        type:
+          type: string
+          title: Error Type
+        input:
+          title: Input
+        ctx:
+          type: object
+          title: Context
+      type: object
+      required:
+      - loc
+      - msg
+      - type
+      title: ValidationError

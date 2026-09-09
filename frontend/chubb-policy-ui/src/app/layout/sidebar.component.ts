@@ -20,6 +20,7 @@ const PRIMARY_NAV: NavItem[] = [
 const SECONDARY_NAV: NavItem[] = [{ label: 'Settings', route: '/settings', icon: 'settings' }];
 
 @Component({
+  standalone: true,
   selector: 'app-sidebar',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [RouterLink, RouterLinkActive, IconComponent],

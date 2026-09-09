@@ -18,6 +18,7 @@ function buildPages(current: number, total: number): (number | 'gap')[] {
 }
 
 @Component({
+  standalone: true,
   selector: 'app-policy-pagination',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [FormsModule, IconComponent],

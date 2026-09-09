@@ -127,3 +127,95 @@ flush) — a test calling `setPreference()` then immediately asserting on
 `resolvedTheme()` saw the stale value. Fixed by making `resolvedTheme` a `computed()`
 instead, which re-evaluates synchronously on read. Both were caught only because `ng
 test` was actually run against real code, not inferred from reading the source.
+
+## Backend rewritten: .NET 8 → Python/FastAPI — 2026-09-09
+**Suggested:** Full rewrite, per the POC requirements reissued by the lead (backend must
+be Python/FastAPI or Node.js).
+**Decision:** Rewrote the backend in FastAPI, deleted the .NET solution, and kept the
+layering, the `/api/v1` surface and the `ErrorResponse` shape identical.
+**Why:** The .NET implementation was complete and working, so the cheapest correct path
+was a port that preserves the contract rather than a redesign — the Angular client
+needed no changes to any existing call. Structural `Protocol` ports replace the C#
+interfaces, which additionally keeps the dependency arrow one-way: `infrastructure`
+never imports `application.ports`, where in C# the implementations had to reference the
+interfaces they implemented.
+
+## pydantic renders Decimal as a JSON string — 2026-09-09
+**Suggested:** N/A — caught while writing the DTO layer, before it reached the UI.
+**Decision:** `premiumAmount` crosses the wire as a JSON number via a `PlainSerializer`;
+`Decimal` remains the in-process type.
+**Why:** pydantic v2 serialises `Decimal` to a *string* in JSON mode by default. The
+Angular app does arithmetic and currency formatting on `premiumAmount`, so this would
+have silently broken every chart and total — with no server-side error to notice. A
+two-decimal premium capped at 5,000,000 is exactly representable in float64, so the
+conversion is lossless at this boundary. There is a regression test asserting the JSON
+type specifically.
+
+## FastAPI validates one field at a time — 2026-09-09
+**Suggested:** Declare bounds as `Query(ge=1, le=100)`, the idiomatic FastAPI way.
+**Decision:** Rejected. All filter validation goes through one `parse_policy_filter`
+that collects every problem and raises once.
+**Why:** FastAPI rejects on the first failing constraint, so a request with four bad
+parameters reports one. The previous FluentValidation implementation reported all of
+them, and a caller should be able to fix a bad request in a single round trip. Verified
+by a test asserting all four field names come back together.
+
+## Cerebras model selection — 2026-09-09
+**Suggested:** Default to `llama-3.3-70b`, and I initially flagged the user-supplied
+`qwen-3.8-27b` as not a real model id.
+**Decision:** Wrong on both counts — corrected by querying `client.models.list()`. This
+key's available models are `gemma-4-31b` (listed but 404s — no access), `qwen-3.8-27b`
+and `gpt-oss-120b`. Settled on `gpt-oss-120b`, env-overridable.
+**Why:** Worth recording as a mistake: I asserted a model id was invalid from memory
+rather than asking the API, which cost a round of debugging. The related real finding is
+that qwen-3.x is a reasoning model whose hidden reasoning tokens are drawn from
+`max_completion_tokens` — at 900 the budget was exhausted before any content was
+emitted, so the SDK returned a *successful* response with `content: None`. Default
+raised to 4000, and the adapter now reports "increase LLM_MAX_TOKENS" when
+`finish_reason == "length"` rather than a bare "empty completion".
+
+## Grounding the Copilot in specific policies — 2026-09-09
+**Suggested:** Ground prompts in the summary aggregates plus a sample of rows.
+**Decision:** Kept that, and added `references.py` — textual extraction of policy
+numbers, quoted terms and proper nouns, each resolved to real records appended to the
+context.
+**Why:** With aggregates alone, "why is PCL-100219 flagged?" was answered — correctly
+but uselessly — with "the context does not contain that policy", because the statistical
+sample almost never includes the one row the user asked about. Heuristics rather than an
+LLM call for entity extraction: it runs in microseconds, costs nothing, and a false
+positive only adds a few unused rows to the prompt. The lookups deliberately ignore the
+active filter, so a policy number found while the Flagged view is open still resolves.
+
+## Rendering model output as Markdown — 2026-09-09
+**Suggested:** `marked` + `DOMPurify`, the usual pairing.
+**Decision:** A ~100-line parser that renders through Angular template bindings instead.
+**Why:** Model output is untrusted text that can quote policyholder-supplied names. With
+bindings there is no HTML string anywhere in the path for an injection to ride in on, so
+the sanitiser is not a control that can be misconfigured — it is not needed at all. It
+also avoids two dependencies for five constructs (bullets, numbers, bold, italic, code).
+
+## Angular 21 → 18 — 2026-09-09
+**Suggested:** Downgrade to meet the stated Angular 18 requirement.
+**Decision:** Done. Required more than a version bump: `standalone: true` added
+explicitly to all 22 components (default only from v19), `zone.js` restored to
+polyfills (v21 is zoneless by default), `provideBrowserGlobalErrorListeners` removed
+(v20+), Karma/Jasmine in place of the v20+ Vitest builder, and `module: preserve`
+swapped for `ES2022`/`bundler` (TS 5.5).
+**Why:** Two things worth noting for anyone repeating this. Angular's `@else if` does not
+support the `as` alias that `@if` does, so aliased branches had to be nested rather than
+chained — the compiler error for this points at the *body*, not the alias. And Tailwind 4
+is retained: Angular 18's builder declares an optional peer on Tailwind ≤3, which does
+not describe how this build works (Tailwind runs through an explicit `.postcssrc.json`),
+so `.npmrc` records `legacy-peer-deps=true` rather than downgrading a working stylesheet.
+
+## Verification — 2026-09-09
+**Decision:** Added `backend/scripts/verify_api.py`, an end-to-end sweep run against the
+live stack.
+**Why:** Unit tests use the mock provider and never touch the network, which is correct
+for a test suite but proves nothing about the actual Cerebras integration. The sweep hits
+every endpoint against a running server and asserts the things a reviewer would check by
+hand: response shapes, that repeat queries register cache hits, that a mutation bumps the
+cache generation, and that a cached summary never hides a just-applied flag. Last run:
+57 passed / 0 failed against live Cerebras, and 55 passed / 2 skipped through the Angular
+proxy (`/health` and `/openapi.json` are not proxied — the dev server forwards only
+`/api`).

@@ -8,6 +8,7 @@ import { IconComponent } from '../../../shared/ui/icon.component';
  * a field the API ignores would be misleading. Noted in the UI copy instead.
  */
 @Component({
+  standalone: true,
   selector: 'app-flag-dialog',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [FormsModule, IconComponent],

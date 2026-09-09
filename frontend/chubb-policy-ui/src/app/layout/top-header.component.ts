@@ -3,6 +3,7 @@ import { IconComponent } from '../shared/ui/icon.component';
 import { ThemeService } from '../core/services/theme.service';
 
 @Component({
+  standalone: true,
   selector: 'app-top-header',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [IconComponent],

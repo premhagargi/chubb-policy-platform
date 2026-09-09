@@ -17,6 +17,7 @@ interface Bar {
  * provide: premium by line of business, and policy count by region.
  */
 @Component({
+  standalone: true,
   selector: 'app-distribution-chart',
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
