@@ -46,8 +46,8 @@ interface Turn {
   template: `
     @if (open()) {
       <aside
-        class="animate-drawer-in fixed inset-y-0 right-0 z-50 flex w-full max-w-[420px] flex-col shadow-2xl"
-        style="background: var(--surface); border-left: 1px solid var(--border);"
+        class="animate-drawer-in fixed bottom-4 right-4 top-4 z-50 flex w-[calc(100vw-2rem)] max-w-[420px] flex-col overflow-hidden rounded-xl shadow-2xl"
+        style="background: var(--surface); border: 1px solid var(--border);"
         role="complementary"
         aria-label="Policy Copilot assistant"
       >
@@ -56,21 +56,13 @@ interface Turn {
           class="flex shrink-0 items-center gap-2.5 px-4 py-3.5"
           style="border-bottom: 1px solid var(--border);"
         >
-          <span
-            class="flex h-7 w-7 items-center justify-center rounded-md"
-            style="background: color-mix(in srgb, var(--brand) 12%, transparent); color: var(--brand);"
-          >
-            <app-icon name="sparkle" [size]="15" />
+          <span class="flex items-center" style="color: var(--accent);">
+            <app-icon name="sparkle" [size]="17" />
           </span>
 
-          <div class="min-w-0 flex-1">
-            <h2 class="text-[14px] font-semibold tracking-tight" style="color: var(--text);">
-              Policy Copilot
-            </h2>
-            <p class="truncate text-[11px]" style="color: var(--text-muted);">
-              Scoped to {{ scopeLabel() }}
-            </p>
-          </div>
+          <h2 class="min-w-0 flex-1 text-[14px] font-semibold tracking-tight" style="color: var(--text);">
+            Policy Copilot
+          </h2>
 
           @if (turns().length > 0) {
             <button
@@ -110,19 +102,6 @@ interface Turn {
               <p class="mt-1 max-w-[260px] text-[13px]" style="color: var(--text-muted);">
                 Answers are grounded in the {{ scopeLabel() }} currently in view.
               </p>
-
-              <div class="mt-4 flex flex-col gap-1.5">
-                @for (suggestion of suggestions; track suggestion) {
-                  <button
-                    type="button"
-                    class="rounded-full border px-3 py-1.5 text-[12px] transition-colors hover:bg-[var(--surface-hover)]"
-                    style="border-color: var(--border); color: var(--text-muted);"
-                    (click)="ask(suggestion)"
-                  >
-                    {{ suggestion }}
-                  </button>
-                }
-              </div>
             </div>
           } @else {
             <div class="space-y-3.5">
@@ -136,12 +115,15 @@ interface Turn {
                       {{ turn.text }}
                     </p>
                   </div>
-                } @else {
+                } @else if (turn.text) {
+                  <!-- Only once there is something to show: an assistant turn
+                       starts empty, and rendering its bubble immediately left an
+                       empty bar sitting above the thinking dots. -->
                   <div>
                     <div
                       class="rounded-lg rounded-bl-sm px-3 py-2 text-[13px] leading-relaxed"
-                      [style.background]="turn.failed ? 'var(--status-cancelled-bg)' : 'var(--surface-hover)'"
-                      [style.color]="turn.failed ? 'var(--status-cancelled)' : 'var(--text)'"
+                      [style.background]="turn.failed ? 'var(--accent-bg)' : 'var(--surface-hover)'"
+                      [style.color]="turn.failed ? 'var(--accent)' : 'var(--text)'"
                     >
                       <app-markdown-text [value]="turn.text" />
                       @if ($last && streaming() && turn.text) {
@@ -181,19 +163,34 @@ interface Turn {
         <!-- Sticky composer -->
         <form
           class="shrink-0 px-3 py-3"
-          style="border-top: 1px solid var(--border); background: var(--surface);"
+          style="background: var(--surface);"
           (ngSubmit)="submit()"
         >
+          @if (!streaming()) {
+            <div class="mb-2 flex flex-wrap gap-1.5">
+              @for (suggestion of suggestions; track suggestion) {
+                <button
+                  type="button"
+                  class="rounded-full border px-2.5 py-1 text-[11px] transition-colors hover:bg-[var(--surface-hover)]"
+                  style="border-color: var(--border); color: var(--text-muted);"
+                  (click)="ask(suggestion)"
+                >
+                  {{ suggestion }}
+                </button>
+              }
+            </div>
+          }
+
           <label class="sr-only" for="copilot-prompt">Ask a question about these policies</label>
           <div
-            class="flex items-end gap-2 rounded-lg border px-3 py-2 transition-colors focus-within:border-[var(--brand)]"
+            class="flex items-center gap-2 rounded-lg border px-3 py-1.5 transition-colors focus-within:border-[var(--brand)]"
             style="background: var(--bg); border-color: var(--border);"
           >
             <textarea
               id="copilot-prompt"
               name="prompt"
               rows="1"
-              class="max-h-28 flex-1 resize-none bg-transparent text-[13px] leading-relaxed outline-none"
+              class="max-h-28 min-h-8 flex-1 resize-none self-center bg-transparent py-1.5 text-[13px] leading-5 outline-none"
               style="color: var(--text);"
               placeholder="Ask about these policies, or name a policy number…"
               maxlength="2000"
@@ -204,8 +201,8 @@ interface Turn {
 
             <button
               type="submit"
-              class="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-white transition-opacity hover:opacity-90 disabled:opacity-40"
-              style="background: var(--brand);"
+              class="flex h-8 w-8 shrink-0 items-center justify-center rounded-md transition-opacity hover:opacity-90 disabled:opacity-40"
+              style="background: var(--brand); color: var(--brand-contrast);"
               [disabled]="!canSubmit()"
               [attr.aria-label]="streaming() ? 'Stop generating' : 'Send question'"
             >
@@ -233,7 +230,7 @@ interface Turn {
         height: 1em;
         margin-left: 1px;
         vertical-align: text-bottom;
-        background: var(--brand);
+        background: var(--accent);
         animation: caret-blink 1s step-end infinite;
       }
 

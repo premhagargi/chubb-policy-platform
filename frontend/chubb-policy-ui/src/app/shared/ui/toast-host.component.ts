@@ -20,7 +20,7 @@ import { ToastService } from '../../core/services/toast.service';
         >
           <span
             class="mt-0.5 flex h-4 w-4 items-center justify-center rounded-full"
-            [style.color]="toast.variant === 'error' ? 'var(--status-cancelled)' : 'var(--status-active)'"
+            [style.color]="toast.variant === 'error' ? 'var(--accent)' : 'var(--text)'"
           >
             <app-icon [name]="toast.variant === 'error' ? 'alert' : 'check'" [size]="15" />
           </span>

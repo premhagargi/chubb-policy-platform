@@ -141,8 +141,8 @@ interface Field {
             } @else {
               <button
                 type="button"
-                class="flex h-9 flex-1 items-center justify-center gap-1.5 rounded-md text-[13px] font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
-                style="background: var(--brand);"
+                class="flex h-9 flex-1 items-center justify-center gap-1.5 rounded-md text-[13px] font-medium transition-opacity hover:opacity-90 disabled:opacity-50"
+                style="background: var(--brand); color: var(--brand-contrast);"
                 [disabled]="flagInFlight()"
                 (click)="flag.emit(p)"
               >

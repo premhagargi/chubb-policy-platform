@@ -61,17 +61,19 @@ provider, and `GET /api/v1/ai/health` says so.
 
 All three run through one swappable `LlmProvider` port and share the in-memory cache.
 
-1. **Policy Copilot** — the end-to-end prompt flow. The right-hand assistant panel sends
-   the question *plus the filter currently on screen*, so answers describe the set the
-   user is looking at rather than the whole book. Answers stream token by token over
-   SSE. It handles three question types: single-policy lookups (by policy number or
-   policyholder name), summaries, and statistics.
+1. **Policy Copilot** — the end-to-end prompt flow, and the one AI surface in the UI.
+   A floating launcher opens a right-hand assistant panel that sends the question *plus
+   the filter currently on screen*, so answers describe the set the user is looking at
+   rather than the whole book. Answers stream token by token over SSE. It handles three
+   question types: single-policy lookups (by policy number or policyholder name),
+   summaries, and statistics.
 2. **AI risk assessment** — per-policy underwriting triage in the detail drawer,
    returning a structured score, band, factors and recommendation. When the model judges
    a policy worth flagging, the panel offers the existing flag action, so the AI output
    ends in a real state change rather than a paragraph.
-3. **Portfolio brief** — a three-bullet executive narrative over the current dashboard
-   KPIs.
+3. **Portfolio brief** — a three-bullet executive narrative over the current filter.
+   The endpoint is live and tested, but is not surfaced in the UI (the dashboard card was
+   removed); call `POST /api/v1/ai/portfolio-brief` directly.
 
 Every AI response carries a `usage` block (provider, model, latency, cache hit), shown
 in the UI so you can see where an answer came from.

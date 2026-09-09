@@ -78,7 +78,9 @@ behaviour rather than asserting it.
 ## AI
 
 Three features over one `LlmProvider` port: Policy Copilot (`/ai/prompt`, plus an SSE
-stream), per-policy risk assessment, portfolio brief.
+stream), per-policy risk assessment, portfolio brief. Only the first two are surfaced in
+the UI — the brief endpoint is live and tested but has no card since the dashboard one
+was removed. Do not delete it; it is part of the documented contract.
 
 - **All prompt text lives in `application/prompts.py`.** Do not inline prompts at call
   sites.
@@ -110,6 +112,12 @@ Angular 18 specifics that bite:
 - Backticks inside a component template are a TS template-literal terminator. Never put
   them in template comments.
 - `zone.js` is required in polyfills; the app is not zoneless.
+- **Writing a signal inside `effect()` throws NG0600** unless you pass
+  `{ allowSignalWrites: true }`. This became the default (and the option was removed) in
+  v19, so any snippet written for a newer Angular will compile here and then fail at
+  runtime. It is not a build error — the effect just throws and the feature silently does
+  nothing. This exact bug left every page empty until the user pressed Refresh; see
+  `policy-state.service.spec.ts`, which covers it.
 
 `PolicyStateService` owns all list state; components read signals and call intent
 methods. No component issues its own HTTP request except the AI components, which own

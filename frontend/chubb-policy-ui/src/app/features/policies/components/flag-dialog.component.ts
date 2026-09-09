@@ -70,8 +70,8 @@ import { IconComponent } from '../../../shared/ui/icon.component';
             </button>
             <button
               type="button"
-              class="flex h-9 items-center gap-1.5 rounded-md px-3.5 text-[13px] font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
-              style="background: var(--brand);"
+              class="flex h-9 items-center gap-1.5 rounded-md px-3.5 text-[13px] font-medium transition-opacity hover:opacity-90 disabled:opacity-50"
+              style="background: var(--brand); color: var(--brand-contrast);"
               [disabled]="busy()"
               (click)="confirm.emit()"
             >

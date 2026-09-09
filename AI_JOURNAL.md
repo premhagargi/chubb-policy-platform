@@ -219,3 +219,33 @@ cache generation, and that a cached summary never hides a just-applied flag. Las
 57 passed / 0 failed against live Cerebras, and 55 passed / 2 skipped through the Angular
 proxy (`/health` and `/openapi.json` are not proxied — the dev server forwards only
 `/api`).
+
+## NG0600: every page loaded empty until Refresh — 2026-09-09
+**Suggested:** N/A — reported by the user, and a regression I introduced.
+**Decision:** Added `{ allowSignalWrites: true }` to the three effects that write
+signals, and a spec covering initial load.
+**Why:** Writing to a signal inside `effect()` throws NG0600 on Angular 18 unless opted
+into; the flag became the default and was removed in v19, so code written against the
+original Angular 21 target had no reason to carry it. The data-loading effect calls
+`fetch()`, which sets `_status` synchronously — so on every page the effect threw, no
+request was issued, and the table stayed empty. The Refresh button appeared to "fix" it
+only because `refetch()` calls `fetch()` directly, outside any effect. Nothing failed at
+build time and no test covered the load path, which is why it shipped. The new
+`policy-state.service.spec.ts` was verified to actually catch it: 4 failures with the fix
+reverted, 15/15 with it in place.
+
+## One-hue palette — 2026-09-09
+**Suggested:** By the user: white, off-white, orange, grey text, black buttons, nothing
+else.
+**Decision:** Rebuilt the token set around a single accent. Chrome (sidebar + header) got
+its own `--chrome-*` tokens so it can be off-white on light and black on dark
+independently of the content surface.
+**Why:** Three consequences worth recording, because each was a place the constraint
+changed behaviour rather than just colour. (1) Status can no longer be encoded by hue, so
+it is encoded by tone, and orange is reserved for the two states that ask something of
+the operator — pending and flagged. (2) Error surfaces had been borrowing the "Cancelled"
+status token, which in the new palette is the *faintest* grey in the system; an error
+would have been the least visible thing on screen, so errors now take the accent. (3)
+Buttons painted `var(--brand)` relied on a literal `text-white` class, which breaks the
+moment `--brand` inverts to off-white on dark — nine of them now use `--brand-contrast`,
+which inverts with the button.

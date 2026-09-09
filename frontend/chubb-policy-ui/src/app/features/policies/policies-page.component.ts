@@ -4,7 +4,6 @@ import { PolicyFilter } from '../../core/models/policy-filter.model';
 import { ToastService } from '../../core/services/toast.service';
 import { IconComponent } from '../../shared/ui/icon.component';
 import { formatCurrency, formatDate, formatRelativeTime } from '../../shared/utils/format';
-import { AiBriefCardComponent } from './components/ai-brief-card.component';
 import { AiAssistantDrawerComponent } from './components/ai-assistant-drawer.component';
 import { DistributionChartComponent } from './components/distribution-chart.component';
 import { FlagDialogComponent } from './components/flag-dialog.component';
@@ -36,7 +35,6 @@ import { PolicyStateService } from './policy-state.service';
     PolicyPaginationComponent,
     PolicyDetailDrawerComponent,
     FlagDialogComponent,
-    AiBriefCardComponent,
     AiAssistantDrawerComponent,
   ],
   template: `
@@ -51,18 +49,6 @@ import { PolicyStateService } from './policy-state.service';
         </div>
 
         <div class="flex items-center gap-2">
-          <button
-            type="button"
-            class="flex h-8 items-center gap-1.5 rounded-md border px-3 text-[13px] font-medium transition-colors hover:bg-[var(--surface-hover)]"
-            style="background: var(--surface); border-color: var(--border); color: var(--text);"
-            [attr.aria-expanded]="assistantOpen()"
-            aria-controls="policy-copilot"
-            (click)="assistantOpen.set(!assistantOpen())"
-          >
-            <app-icon name="sparkle" [size]="14" />
-            Ask Copilot
-          </button>
-
           @if (state.lastUpdated(); as updated) {
             <span class="text-xs" style="color: var(--text-subtle);">
               Last updated {{ relativeTime(updated) }}
@@ -88,7 +74,7 @@ import { PolicyStateService } from './policy-state.service';
         <div class="surface-card flex flex-col items-center justify-center px-6 py-16 text-center">
           <span
             class="flex h-11 w-11 items-center justify-center rounded-full"
-            style="background: var(--status-cancelled-bg); color: var(--status-cancelled);"
+            style="background: var(--accent-bg); color: var(--accent);"
           >
             <app-icon name="alert" [size]="22" />
           </span>
@@ -100,8 +86,8 @@ import { PolicyStateService } from './policy-state.service';
           </p>
           <button
             type="button"
-            class="mt-4 h-9 rounded-md px-4 text-[13px] font-medium text-white transition-opacity hover:opacity-90"
-            style="background: var(--brand);"
+            class="mt-4 h-9 rounded-md px-4 text-[13px] font-medium transition-opacity hover:opacity-90"
+            style="background: var(--brand); color: var(--brand-contrast);"
             (click)="refresh()"
           >
             Try again
@@ -120,10 +106,6 @@ import { PolicyStateService } from './policy-state.service';
           <div class="mb-4 grid grid-cols-1 gap-3 lg:grid-cols-2">
             <app-status-donut [summary]="state.summary()" [loading]="state.isFirstLoad()" />
             <app-distribution-chart [summary]="state.summary()" [loading]="state.isFirstLoad()" />
-          </div>
-
-          <div class="mb-4">
-            <app-ai-brief-card [filter]="state.filter()" />
           </div>
         }
 
@@ -167,8 +149,8 @@ import { PolicyStateService } from './policy-state.service';
                   </button>
                   <button
                     type="button"
-                    class="flex h-8 items-center gap-1.5 rounded-md px-3 text-[13px] font-medium text-white transition-opacity hover:opacity-90"
-                    style="background: var(--brand);"
+                    class="flex h-8 items-center gap-1.5 rounded-md px-3 text-[13px] font-medium transition-opacity hover:opacity-90"
+                    style="background: var(--brand); color: var(--brand-contrast);"
                     (click)="openBulkFlag()"
                   >
                     <app-icon name="flag" [size]="14" />
@@ -238,6 +220,22 @@ import { PolicyStateService } from './policy-state.service';
       }
     </div>
 
+    <!-- Floating launcher. Hidden while the panel is open so it never sits on top
+         of the panel it opened. -->
+    @if (!assistantOpen()) {
+      <button
+        type="button"
+        class="copilot-fab fixed bottom-5 right-5 z-40 flex h-12 items-center gap-2 rounded-full pl-3.5 pr-4 text-[13px] font-medium shadow-lg transition-transform hover:scale-[1.03]"
+        style="background: var(--brand); color: var(--brand-contrast);"
+        aria-controls="policy-copilot"
+        [attr.aria-expanded]="false"
+        (click)="assistantOpen.set(true)"
+      >
+        <app-icon name="sparkle" [size]="18" />
+        <span class="hidden sm:inline">Ask Copilot</span>
+      </button>
+    }
+
     <app-ai-assistant-drawer
       id="policy-copilot"
       [open]="assistantOpen()"
@@ -261,6 +259,27 @@ import { PolicyStateService } from './policy-state.service';
       (cancel)="flagDialogOpen.set(false)"
     />
   `,
+  styles: [
+    `
+      .copilot-fab {
+        animation: fab-in 200ms ease-out;
+      }
+
+      @keyframes fab-in {
+        from {
+          opacity: 0;
+          transform: scale(0.85) translateY(6px);
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .copilot-fab {
+          animation: none;
+          transition: none;
+        }
+      }
+    `,
+  ],
 })
 export class PoliciesPageComponent implements OnInit {
   protected readonly state = inject(PolicyStateService);

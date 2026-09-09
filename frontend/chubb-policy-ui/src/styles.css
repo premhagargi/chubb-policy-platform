@@ -2,26 +2,39 @@
 
 /* ---------------------------------------------------------------------------
    Chubb Policy Platform — design tokens
-   Enterprise insurance operations palette: Chubb red as the single brand accent,
-   neutral slate surfaces carrying the data. Semantic status colours are muted on
-   purpose — in a data-dense grid, saturated badges compete with the numbers.
+
+   A deliberately monochrome system: white, off-white and grey carry the
+   structure, near-black carries the buttons and primary text, and a single
+   orange is the only hue in the product. Nothing else gets a colour.
+
+   Why: this is a data-dense operations grid. Four saturated status hues
+   competed with the numbers for attention and meant nothing was emphasised.
+   With one accent, orange reads unambiguously as "this needs you" — pending
+   work, flagged policies, AI output — and everything else recedes into
+   greyscale. Status is then differentiated by tone and weight rather than hue.
+
+   The one asymmetry: primary buttons are near-black on light, and off-white on
+   dark. A black button on a near-black canvas is invisible, so the pair inverts
+   rather than tinting. Both stay monochrome and both clear AA.
 --------------------------------------------------------------------------- */
 
 @theme {
   --font-sans:
     'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
 
-  --color-brand-50: #fef2f3;
-  --color-brand-100: #fde3e5;
-  --color-brand-200: #fbccd1;
-  --color-brand-300: #f7a3ac;
-  --color-brand-400: #f06e7e;
-  --color-brand-500: #e43d54;
-  --color-brand-600: #c8102e;
-  --color-brand-700: #a80d27;
-  --color-brand-800: #8c0f24;
-  --color-brand-900: #771123;
-  --color-brand-950: #42040e;
+  /* The single hue. 600 is the light-mode accent (AA on white), 400 the
+     dark-mode one (AA on near-black). */
+  --color-brand-50: #fef6f0;
+  --color-brand-100: #fde9db;
+  --color-brand-200: #fad0b4;
+  --color-brand-300: #f6ae7f;
+  --color-brand-400: #f2854a;
+  --color-brand-500: #ed6a26;
+  --color-brand-600: #c9540f;
+  --color-brand-700: #a1420d;
+  --color-brand-800: #7c3410;
+  --color-brand-900: #632c11;
+  --color-brand-950: #351406;
 
   --radius-card: 0.625rem;
 }
@@ -29,108 +42,134 @@
 /* Semantic surface tokens — every component reads these, never raw hex, so the
    light/dark split lives in exactly one place. */
 :root {
-  --bg: #f6f7f9;
+  --bg: #ffffff;
   --surface: #ffffff;
-  --surface-subtle: #fafbfc;
-  --surface-hover: #f4f5f7;
-  --border: #e3e6ea;
-  --border-strong: #d2d7dd;
-  --text: #11151c;
-  --text-muted: #5f6874;
-  --text-subtle: #858d99;
-  --brand: #c8102e;
+  --surface-subtle: #faf9f7;
+  --surface-hover: #f2f0ed;
+  --border: #e6e3de;
+  --border-strong: #d0ccc5;
+  --text: #131211;
+  --text-muted: #6a665f;
+  --text-subtle: #94908a;
+
+  /* Primary action: near-black. */
+  --brand: #131211;
   --brand-contrast: #ffffff;
-  --ring: #c8102e;
+  --ring: #131211;
 
-  --status-active: #0f7b52;
-  --status-active-bg: #e7f5ee;
-  --status-pending: #9a6206;
-  --status-pending-bg: #fdf3e2;
-  --status-expired: #5f6874;
-  --status-expired-bg: #f0f2f4;
-  --status-cancelled: #a4262c;
-  --status-cancelled-bg: #fdeced;
-  --flag: #b0450b;
-  --flag-bg: #fdf0e7;
+  /* The only hue in the product. */
+  --accent: #c9540f;
+  --accent-contrast: #ffffff;
+  --accent-bg: #fdf1e8;
 
-  --sidebar-bg: #10151d;
-  --sidebar-text: #98a2b3;
-  --sidebar-text-active: #ffffff;
-  --sidebar-hover: #1b2230;
-  --sidebar-active: #232c3c;
-  --sidebar-border: #1e2632;
+  /* Status by tone, not hue. Orange is reserved for the two states that ask
+     something of the operator; everything else is greyscale. */
+  --status-active: #131211;
+  --status-active-bg: #eceae6;
+  --status-pending: #c9540f;
+  --status-pending-bg: #fdf1e8;
+  --status-expired: #6a665f;
+  --status-expired-bg: #f1efec;
+  --status-cancelled: #94908a;
+  --status-cancelled-bg: #f5f3f0;
+  --flag: #c9540f;
+  --flag-bg: #fdf1e8;
+
+  --chrome-bg: #f7f6f4;
+  --chrome-text: #6a665f;
+  --chrome-text-active: #131211;
+  --chrome-hover: #efedea;
+  --chrome-active: #e7e4df;
+  --chrome-border: #e6e3de;
 
   color-scheme: light;
 }
 
+/* The dark palette is defined twice — once for the system preference, once for
+   the explicit toggle — because CSS cannot apply one declaration block from two
+   selectors across a media-query boundary. The two must stay identical; change
+   both or neither. */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
-    --bg: #0d1117;
-    --surface: #151b24;
-    --surface-subtle: #11171f;
-    --surface-hover: #1c232e;
-    --border: #262e3a;
-    --border-strong: #333d4c;
-    --text: #e8ebf0;
-    --text-muted: #99a3b2;
-    --text-subtle: #6f7987;
-    --brand: #f2576d;
-    --brand-contrast: #1a0409;
-    --ring: #f2576d;
+    --bg: #0f0f11;
+    --surface: #17171a;
+    --surface-subtle: #131315;
+    --surface-hover: #202024;
+    --border: #2a2a2e;
+    --border-strong: #3a3a3f;
+    --text: #f5f3f0;
+    --text-muted: #a39f98;
+    --text-subtle: #75716b;
 
-    --status-active: #4ecb96;
-    --status-active-bg: #10291f;
-    --status-pending: #e0aa50;
-    --status-pending-bg: #2b2113;
-    --status-expired: #99a3b2;
-    --status-expired-bg: #1c232e;
-    --status-cancelled: #f58089;
-    --status-cancelled-bg: #2e1418;
-    --flag: #eb9663;
-    --flag-bg: #2c1a10;
+    /* Inverted from light: a near-black button on a near-black canvas would be
+       invisible, so the primary action becomes off-white with dark text. */
+    --brand: #f5f3f0;
+    --brand-contrast: #131211;
+    --ring: #f2854a;
 
-    --sidebar-bg: #0a0e14;
-    --sidebar-text: #8b95a5;
-    --sidebar-text-active: #ffffff;
-    --sidebar-hover: #151b24;
-    --sidebar-active: #1d2530;
-    --sidebar-border: #1a212b;
+    --accent: #f2854a;
+    --accent-contrast: #131211;
+    --accent-bg: #2a1a0e;
+
+    --status-active: #f5f3f0;
+    --status-active-bg: #202024;
+    --status-pending: #f2854a;
+    --status-pending-bg: #2a1a0e;
+    --status-expired: #a39f98;
+    --status-expired-bg: #202024;
+    --status-cancelled: #75716b;
+    --status-cancelled-bg: #1a1a1d;
+    --flag: #f2854a;
+    --flag-bg: #2a1a0e;
+
+    --chrome-bg: #000000;
+    --chrome-text: #8e8a83;
+    --chrome-text-active: #ffffff;
+    --chrome-hover: #151515;
+    --chrome-active: #1f1f1f;
+    --chrome-border: #1c1c1c;
 
     color-scheme: dark;
   }
 }
 
+/* Must stay identical to the media-query block above. */
 :root[data-theme='dark'] {
-  --bg: #0d1117;
-  --surface: #151b24;
-  --surface-subtle: #11171f;
-  --surface-hover: #1c232e;
-  --border: #262e3a;
-  --border-strong: #333d4c;
-  --text: #e8ebf0;
-  --text-muted: #99a3b2;
-  --text-subtle: #6f7987;
-  --brand: #f2576d;
-  --brand-contrast: #1a0409;
-  --ring: #f2576d;
+  --bg: #0f0f11;
+  --surface: #17171a;
+  --surface-subtle: #131315;
+  --surface-hover: #202024;
+  --border: #2a2a2e;
+  --border-strong: #3a3a3f;
+  --text: #f5f3f0;
+  --text-muted: #a39f98;
+  --text-subtle: #75716b;
 
-  --status-active: #4ecb96;
-  --status-active-bg: #10291f;
-  --status-pending: #e0aa50;
-  --status-pending-bg: #2b2113;
-  --status-expired: #99a3b2;
-  --status-expired-bg: #1c232e;
-  --status-cancelled: #f58089;
-  --status-cancelled-bg: #2e1418;
-  --flag: #eb9663;
-  --flag-bg: #2c1a10;
+  --brand: #f5f3f0;
+  --brand-contrast: #131211;
+  --ring: #f2854a;
 
-  --sidebar-bg: #0a0e14;
-  --sidebar-text: #8b95a5;
-  --sidebar-text-active: #ffffff;
-  --sidebar-hover: #151b24;
-  --sidebar-active: #1d2530;
-  --sidebar-border: #1a212b;
+  --accent: #f2854a;
+  --accent-contrast: #131211;
+  --accent-bg: #2a1a0e;
+
+  --status-active: #f5f3f0;
+  --status-active-bg: #202024;
+  --status-pending: #f2854a;
+  --status-pending-bg: #2a1a0e;
+  --status-expired: #a39f98;
+  --status-expired-bg: #202024;
+  --status-cancelled: #75716b;
+  --status-cancelled-bg: #1a1a1d;
+  --flag: #f2854a;
+  --flag-bg: #2a1a0e;
+
+  --chrome-bg: #000000;
+  --chrome-text: #8e8a83;
+  --chrome-text-active: #ffffff;
+  --chrome-hover: #151515;
+  --chrome-active: #1f1f1f;
+  --chrome-border: #1c1c1c;
 
   color-scheme: dark;
 }

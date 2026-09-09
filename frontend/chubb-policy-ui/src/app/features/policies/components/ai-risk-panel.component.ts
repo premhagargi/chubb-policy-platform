@@ -58,7 +58,7 @@ import { SpinnerComponent } from '../../../shared/ui/spinner.component';
         } @else if (error()) {
           <p
             class="flex items-start gap-2 rounded-md px-3 py-2 text-[13px]"
-            style="background: var(--status-cancelled-bg); color: var(--status-cancelled);"
+            style="background: var(--accent-bg); color: var(--accent);"
           >
             <app-icon name="alert" [size]="14" />
             {{ error() }}
@@ -121,8 +121,8 @@ import { SpinnerComponent } from '../../../shared/ui/spinner.component';
           @if (assessment.suggestFlag) {
             <button
               type="button"
-              class="mt-2.5 flex h-8 w-full items-center justify-center gap-1.5 rounded-md text-[13px] font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
-              style="background: var(--brand);"
+              class="mt-2.5 flex h-8 w-full items-center justify-center gap-1.5 rounded-md text-[13px] font-medium transition-opacity hover:opacity-90 disabled:opacity-50"
+              style="background: var(--brand); color: var(--brand-contrast);"
               [disabled]="flagInFlight()"
               (click)="flagSuggested.emit()"
             >
@@ -160,12 +160,17 @@ export class AiRiskPanelComponent {
   constructor() {
     // The drawer reuses one component instance across policies, so a stale
     // assessment must never linger against a different policy.
-    effect(() => {
-      this.policyId();
-      this.result.set(null);
-      this.error.set(null);
-      this.loading.set(false);
-    });
+    // allowSignalWrites is required on Angular 18 (NG0600); it became the
+    // default in v19.
+    effect(
+      () => {
+        this.policyId();
+        this.result.set(null);
+        this.error.set(null);
+        this.loading.set(false);
+      },
+      { allowSignalWrites: true }
+    );
   }
 
   protected assess(): void {
@@ -193,25 +198,25 @@ export class AiRiskPanelComponent {
     });
   }
 
+  // Monochrome plus one hue: High takes the accent because it is the state that
+  // asks something of the operator; Medium and Low recede into greyscale.
   protected readonly bandColor = computed(() => {
     switch (this.result()?.riskBand) {
       case 'High':
-        return 'var(--status-cancelled)';
+        return 'var(--accent)';
       case 'Medium':
-        return 'var(--flag)';
+        return 'var(--text)';
       default:
-        return 'var(--status-active)';
+        return 'var(--text-muted)';
     }
   });
 
   protected readonly bandBackground = computed(() => {
     switch (this.result()?.riskBand) {
       case 'High':
-        return 'var(--status-cancelled-bg)';
-      case 'Medium':
-        return 'var(--flag-bg)';
+        return 'var(--accent-bg)';
       default:
-        return 'var(--status-active-bg)';
+        return 'var(--surface-hover)';
     }
   });
 }

@@ -77,8 +77,8 @@ interface Chip {
             Filters
             @if (activeCount() > 0) {
               <span
-                class="tabular ml-0.5 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-semibold text-white"
-                style="background: var(--brand);"
+                class="tabular ml-0.5 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-semibold"
+                style="background: var(--brand); color: var(--brand-contrast);"
                 >{{ activeCount() }}</span
               >
             }
@@ -185,8 +185,8 @@ interface Chip {
                 </button>
                 <button
                   type="button"
-                  class="rounded-md px-3 py-1.5 text-[13px] font-medium text-white transition-opacity hover:opacity-90"
-                  style="background: var(--brand);"
+                  class="rounded-md px-3 py-1.5 text-[13px] font-medium transition-opacity hover:opacity-90"
+                  style="background: var(--brand); color: var(--brand-contrast);"
                   (click)="panelOpen.set(false)"
                 >
                   Done
@@ -265,12 +265,17 @@ export class PolicyToolbarComponent {
   constructor() {
     // Keep the box in step when the filter changes from elsewhere (chip removal,
     // "clear all", a deep link) without stomping on what the user is typing.
-    effect(() => {
-      const incoming = this.filter().search ?? '';
-      if (this.debounceHandle === null && incoming !== this.searchText()) {
-        this.searchText.set(incoming);
-      }
-    });
+    // allowSignalWrites is required on Angular 18 (NG0600); it became the
+    // default in v19.
+    effect(
+      () => {
+        const incoming = this.filter().search ?? '';
+        if (this.debounceHandle === null && incoming !== this.searchText()) {
+          this.searchText.set(incoming);
+        }
+      },
+      { allowSignalWrites: true }
+    );
   }
 
   protected onSearchInput(value: string): void {

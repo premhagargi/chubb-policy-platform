@@ -15,8 +15,8 @@ import { ThemeService } from '../core/services/theme.service';
   styles: [
     `
       :host {
-        background: var(--surface);
-        border-bottom: 1px solid var(--border);
+        background: var(--chrome-bg);
+        border-bottom: 1px solid var(--chrome-border);
       }
     `,
   ],
@@ -77,8 +77,8 @@ import { ThemeService } from '../core/services/theme.service';
           aria-haspopup="menu"
         >
           <span
-            class="flex h-7 w-7 items-center justify-center rounded-full text-[11px] font-semibold text-white"
-            style="background: var(--brand);"
+            class="flex h-7 w-7 items-center justify-center rounded-full text-[11px] font-semibold"
+            style="background: var(--brand); color: var(--brand-contrast);"
             aria-hidden="true"
             >P</span
           >

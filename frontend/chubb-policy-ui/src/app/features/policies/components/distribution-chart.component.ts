@@ -94,7 +94,7 @@ interface Bar {
                 <div
                   class="h-full rounded-full transition-[width] duration-500"
                   [style.width.%]="bar.pct"
-                  style="background: var(--brand);"
+                  style="background: var(--accent);"
                 ></div>
               </div>
             </li>

@@ -92,7 +92,7 @@ export class KpiGridComponent {
         value: formatNumber(s.totalCount),
         caption: 'Matching current filters',
         icon: 'policies',
-        accent: '#4b5563',
+        accent: 'var(--text-muted)',
         filter: null,
       },
       {
@@ -108,7 +108,7 @@ export class KpiGridComponent {
         value: formatNumber(s.expiringSoonCount),
         caption: 'Active policies nearing expiry',
         icon: 'clock',
-        accent: '#9a6206',
+        accent: 'var(--accent)',
         filter: null,
       },
       {

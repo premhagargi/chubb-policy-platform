@@ -120,11 +120,18 @@ export class PolicyStateService {
         }
       });
 
-      effect(() => {
-        const filter = this._filter();
-        this.writeFilterToUrl(filter);
-        this.fetch(filter);
-      });
+      // allowSignalWrites: `fetch()` sets the status/result signals, and Angular 18
+      // throws NG0600 on a signal write inside an effect unless it is opted into.
+      // (The flag became the default in v19 and no longer exists there.) Without it
+      // the initial load threw and every page stayed empty until a manual refresh.
+      effect(
+        () => {
+          const filter = this._filter();
+          this.writeFilterToUrl(filter);
+          this.fetch(filter);
+        },
+        { allowSignalWrites: true }
+      );
     });
   }
 
