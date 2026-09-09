@@ -233,9 +233,13 @@ export class PolicyStateService {
   }
 
   // --- mutations ---
+  
+  setFlagInFlight(inFlight: boolean): void {
+    this._flagInFlight.set(inFlight);
+  }
 
   flagPolicies(ids: string[]): void {
-    if (ids.length === 0 || this._flagInFlight()) return;
+    if (ids.length === 0) return;
     this._flagInFlight.set(true);
 
     this.api

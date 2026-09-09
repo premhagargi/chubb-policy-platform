@@ -330,7 +330,9 @@ export class PoliciesPageComponent implements OnInit {
       return;
     }
 
-    // If some aren't on the current page, look them up via the API.
+    // Set flag in flight manually while we fetch the missing IDs so the UI waits.
+    this.state.setFlagInFlight(true);
+    
     const api = this.injector.get(PolicyService);
     const lookups = missingNumbers.map(num => 
       api.getPolicies({ ...DEFAULT_FILTER, search: num })
@@ -341,13 +343,20 @@ export class PoliciesPageComponent implements OnInit {
         for (const res of results) {
           if (res.items.length > 0) idsToFlag.push(res.items[0].id);
         }
+        
+        // We must unset it so flagPolicies can set it again without aborting.
+        this.state.setFlagInFlight(false);
+        
         if (idsToFlag.length > 0) {
           this.state.flagPolicies(idsToFlag);
         } else {
           this.toast.error('Could not find those policies to flag.');
         }
       },
-      error: () => this.toast.error('Error looking up policies to flag.')
+      error: () => {
+        this.state.setFlagInFlight(false);
+        this.toast.error('Error looking up policies to flag.');
+      }
     });
   }
 
