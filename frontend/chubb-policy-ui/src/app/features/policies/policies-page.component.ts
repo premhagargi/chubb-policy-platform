@@ -22,6 +22,7 @@ import { PolicyStateService } from './policy-state.service';
 @Component({
   selector: 'app-policies-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  providers: [PolicyStateService],
   imports: [
     IconComponent,
     KpiGridComponent,

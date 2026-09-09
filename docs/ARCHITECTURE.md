@@ -80,8 +80,10 @@ and returned. Nothing above `Infrastructure` ever sees a `DbContext`.
 - **Automated accessibility/e2e tooling** (axe-core CI gate, Cypress/Playwright). The
   manual semantic-HTML/ARIA work in every frontend component *is* in scope and done;
   automating the *verification* of it is the one accessibility item left as a follow-up.
-- **Response caching** on `/summary`/list endpoints. Bonus-only per the spec; not
-  attempted so the time budget stayed on the required core.
+- **Response caching** on `/summary`/list endpoints. Implemented via an in-memory
+  `CachedPolicyQueryService` decorator (30s sliding TTL for lists, 60s for summaries)
+  with generation-based invalidation — every mutation evicts the entire policy cache
+  instantly via a `CancellationTokenSource` pattern. See `Infrastructure/Caching/`.
 
 ## Environment note — what was and wasn't verified
 

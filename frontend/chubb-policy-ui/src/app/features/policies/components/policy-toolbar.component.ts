@@ -85,7 +85,7 @@ interface Chip {
 
           @if (panelOpen()) {
             <div
-              class="animate-fade-in absolute left-0 top-full z-40 mt-1.5 w-[300px] rounded-lg border p-3.5 shadow-lg"
+              class="animate-fade-in absolute left-0 top-full z-40 mt-1.5 w-[360px] rounded-lg border p-3.5 shadow-lg"
               style="background: var(--surface); border-color: var(--border);"
               (click)="$event.stopPropagation()"
             >

@@ -1,4 +1,5 @@
 using ChubbPolicyPlatform.Application.Policies;
+using ChubbPolicyPlatform.Infrastructure.Caching;
 using ChubbPolicyPlatform.Infrastructure.Persistence;
 using ChubbPolicyPlatform.Infrastructure.Persistence.Commands;
 using ChubbPolicyPlatform.Infrastructure.Persistence.Queries;
@@ -30,7 +31,20 @@ public static class DependencyInjection
             healthChecks.AddNpgSql(connectionString, name: "postgres");
         }
 
-        services.AddScoped<IPolicyQueryService, PolicyQueryService>();
+        // --- Caching ---
+        services.AddMemoryCache();
+        services.AddSingleton<PolicyCacheInvalidator>();
+
+        // Register the real query service under its own concrete type so the decorator
+        // can resolve it without a circular dependency.
+        services.AddScoped<PolicyQueryService>();
+        services.AddScoped<IPolicyQueryService>(sp =>
+            new CachedPolicyQueryService(
+                sp.GetRequiredService<PolicyQueryService>(),
+                sp.GetRequiredService<Microsoft.Extensions.Caching.Memory.IMemoryCache>(),
+                sp.GetRequiredService<PolicyCacheInvalidator>(),
+                sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<CachedPolicyQueryService>>()));
+
         services.AddScoped<IPolicyCommandService, PolicyCommandService>();
 
         return services;

@@ -1,9 +1,10 @@
 using ChubbPolicyPlatform.Application.Policies;
+using ChubbPolicyPlatform.Infrastructure.Caching;
 using Microsoft.EntityFrameworkCore;
 
 namespace ChubbPolicyPlatform.Infrastructure.Persistence.Commands;
 
-public class PolicyCommandService(ApplicationDbContext db) : IPolicyCommandService
+public class PolicyCommandService(ApplicationDbContext db, PolicyCacheInvalidator cacheInvalidator) : IPolicyCommandService
 {
     public async Task<FlagPoliciesResult> FlagPoliciesAsync(FlagPoliciesRequest request, CancellationToken ct = default)
     {
@@ -18,7 +19,13 @@ public class PolicyCommandService(ApplicationDbContext db) : IPolicyCommandServi
             policy.Flag();
 
         if (matching.Count > 0)
+        {
             await db.SaveChangesAsync(ct);
+
+            // Evict the entire policy cache — flagging changes summary aggregations,
+            // list contents for any filter that touches flagged state, etc.
+            cacheInvalidator.InvalidateAll();
+        }
 
         return new FlagPoliciesResult(matching.Select(p => p.Id).ToList());
     }

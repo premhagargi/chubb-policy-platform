@@ -7,7 +7,7 @@ import {
   runInInjectionContext,
   signal,
 } from '@angular/core';
-import { ActivatedRoute, Params, Router } from '@angular/router';
+import { ActivatedRoute, NavigationEnd, Params, Router } from '@angular/router';
 import { forkJoin, of } from 'rxjs';
 import { catchError, finalize, switchMap } from 'rxjs/operators';
 import { Policy } from '../../core/models/policy.model';
@@ -30,7 +30,7 @@ export type RequestStatus = 'idle' | 'loading' | 'success' | 'error';
  * refetches, which is what makes refresh, deep-linking and back/forward work without
  * any component touching the router.
  */
-@Injectable({ providedIn: 'root' })
+@Injectable()
 export class PolicyStateService {
   private readonly api = inject(PolicyService);
   private readonly toast = inject(ToastService);
@@ -106,9 +106,20 @@ export class PolicyStateService {
 
     this._filter.set(this.readFilterFromUrl());
 
-    // init() is called from ngOnInit, which is not an injection context — effect()
-    // needs one to register its cleanup with the right lifecycle.
     runInInjectionContext(this.injector, () => {
+      // Re-read from URL on every navigation end to handle component reuse cleanly
+      this.router.events.subscribe((event) => {
+        if (event instanceof NavigationEnd) {
+          // Check if we are still the active route for this component
+          if (this.route.snapshot.routeConfig) {
+             const fromUrl = this.readFilterFromUrl();
+             // Apply seed filter if it exists in route data
+             const seed = this.route.snapshot.data['seedFilter'];
+             this._filter.set({ ...fromUrl, ...(seed || {}) });
+          }
+        }
+      });
+
       effect(() => {
         const filter = this._filter();
         this.writeFilterToUrl(filter);
@@ -156,6 +167,7 @@ export class PolicyStateService {
   }
 
   refetch(): void {
+    this.api.invalidateAll();
     this.fetch(this._filter());
   }
 

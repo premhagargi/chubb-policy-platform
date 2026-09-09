@@ -20,7 +20,7 @@ interface Bar {
   selector: 'app-distribution-chart',
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <section class="surface-card flex flex-col p-4">
+    <section class="surface-card flex flex-col p-5 min-h-[350px]">
       <header class="mb-3 flex items-start justify-between gap-3">
         <div>
           <h2 class="text-[13px] font-semibold" style="color: var(--text);">
