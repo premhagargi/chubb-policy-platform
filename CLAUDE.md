@@ -14,6 +14,21 @@ would break one of these, say so rather than doing it.
 
 A previous .NET 8 backend was replaced wholesale. Do not reintroduce C#.
 
+## Project governance
+
+This file stays the single authoritative doc. `.claude/rules/*.md` adds
+finer-grained, mechanically-oriented guardrails (architecture checklist, file
+placement map, safety rules, test conventions, Angular gotchas) that
+cross-reference this file rather than duplicate it. `agents/agents.md` and
+`workflows/development-workflow.md` describe how planning, implementation, and
+review are expected to happen. `.claude/commands/test-suite.md` and
+`.claude/commands/export-openapi.md` are quick local commands, distinct from the
+`verify-stack` and `add-endpoint` skills under `.claude/skills/`.
+
+A `.githooks/pre-commit` script (secret + generated-file checks) is available;
+opt in per-clone with `git config core.hooksPath .githooks`. It is not enabled
+automatically.
+
 ## Commands
 
 ```bash

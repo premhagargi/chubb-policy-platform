@@ -1,0 +1,32 @@
+#!/bin/sh
+# Fast, opt-in pre-commit checks for chubb-policy-platform.
+# Enable with:  git config core.hooksPath .githooks
+#
+# Deliberately does NOT run the test suite (slow, and the real proof of
+# "it works" needs both servers live via the verify-stack skill) — this only
+# guards against the two mistakes that are cheap to catch and expensive to
+# clean up after a push: a leaked secret, and a hand-edited generated file.
+
+set -e
+
+staged_files=$(git diff --cached --name-only)
+
+if echo "$staged_files" | grep -qx "backend/.env"; then
+  echo "pre-commit: backend/.env is staged. This file holds CEREBRAS_API_KEY and must never be committed." >&2
+  echo "  Run: git restore --staged backend/.env" >&2
+  exit 1
+fi
+
+if git diff --cached -U0 -- . ':!*.lock' ':!package-lock.json' | grep -Eq '^\+.*CEREBRAS_API_KEY[[:space:]]*=[[:space:]]*[^[:space:]"'"'"']+'; then
+  echo "pre-commit: a staged diff line looks like it sets CEREBRAS_API_KEY to a real value." >&2
+  echo "  If this is a live key, remove it before committing." >&2
+  exit 1
+fi
+
+if echo "$staged_files" | grep -qx "openapi/openapi.yaml"; then
+  echo "pre-commit: openapi/openapi.yaml is staged." >&2
+  echo "  Confirm this came from 'python scripts/export_openapi.py' and wasn't hand-edited." >&2
+  echo "  (This is a warning only — commit will proceed.)" >&2
+fi
+
+exit 0

@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "deny": [
+      "Read(backend/.env)",
+      "Edit(backend/.env)",
+      "Write(backend/.env)",
+      "Edit(openapi/openapi.yaml)",
+      "Write(openapi/openapi.yaml)",
+      "Bash(git push --force*)",
+      "Bash(git push -f*)",
+      "Bash(git reset --hard*)",
+      "Bash(git clean -f*)",
+      "Bash(git branch -D*)",
+      "Bash(git checkout -- .)",
+      "Bash(git checkout -- *)",
+      "Bash(git restore .)",
+      "Bash(git restore *)",
+      "Bash(git config*)",
+      "Bash(rm -rf*)",
+      "PowerShell(Remove-Item -Recurse -Force*)"
+    ],
+    "allow": [
+      "Bash(git status)",
+      "Bash(git diff*)",
+      "Bash(git log*)",
+      "Bash(*pytest*)",
+      "Bash(*ng test*)",
+      "Bash(*ng build*)",
+      "Bash(npm test*)",
+      "Bash(*uvicorn app.main:app*)"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/postEdit-cache-reminder.cjs\""
+          }
+        ]
+      }
+    ]
+  }
+}
