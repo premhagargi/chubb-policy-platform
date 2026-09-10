@@ -19,6 +19,10 @@ import time
 
 import httpx
 
+# AI responses can contain characters (em dashes, curly quotes) that Windows'
+# default console codepage (cp1252) can't encode, which crashes print() mid-sweep.
+sys.stdout.reconfigure(encoding="utf-8")
+
 BASE = (sys.argv[1] if len(sys.argv) > 1 else "http://localhost:5080").rstrip("/")
 V1 = f"{BASE}/api/v1"
 
