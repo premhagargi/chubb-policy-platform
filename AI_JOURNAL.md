@@ -249,3 +249,68 @@ would have been the least visible thing on screen, so errors now take the accent
 Buttons painted `var(--brand)` relied on a literal `text-white` class, which breaks the
 moment `--brand` inverts to off-white on dark — nine of them now use `--brand-contrast`,
 which inverts with the button.
+
+## Conversational Copilot flagging and entity resolution — 2026-09-09
+**Suggested:** Let the Copilot not just answer questions but also take action — flag a
+policy for review when the user types something like "flag PCL-100219", or just "yes"
+after being asked "which one?". This is done with an instruction that tells the LLM it
+can call a "flag" tool, plus a simple pattern-matching check (regex) on the frontend —
+not a second AI model just for figuring out intent.
+**Decision:** Accepted the idea, then fixed several real problems with it the same
+evening instead of starting over:
+- The first version of the "did they ask to flag something" pattern
+  (`(?:flag|mark)\s+(?:policy\s+)?([a-z0-9-]+)`) matched almost any word typed after
+  "flag", not just real policy numbers. Narrowed it to only match the actual policy
+  number format (`pcl-` followed by digits) (`ca5a32f`).
+- The screen didn't always show the flag correctly right after flagging, because the
+  database update happens in the background (it's async) and the page wasn't waiting
+  for it properly. Fixed the two files that manage this screen state so they wait for
+  the real result instead of assuming it worked (`869bdd7`).
+- The part of the backend that figures out which policy someone is talking about
+  (`references.py`) could find names typed with capital letters or in quotes, but missed
+  plain lowercase typing like "pull up courtney spencer policy for me". Added a fallback:
+  strip out common filler words and use what's left as a likely name (`7a458b4`).
+- The system only looked at the user's current message to figure out which policy they
+  meant. So if someone asked about a policy by name, then just replied "yes, flag it" on
+  the next message, it had nothing to go on. Fixed so it also looks back at recent
+  messages in the conversation, not just the latest one (`d5a3b1d`).
+**Why:** Each of these fixes closes a real gap between "usually picks the right policy"
+and "reliable enough to trust with an action that changes data." We kept the
+simple-regex-plus-tool-use approach the whole time, rather than building a separate,
+more complex system to detect intent, because the flag action only ever needs to match
+one simple pattern (a policy number). Once the conversation history was actually being
+checked at the right step, everything needed was already there — no new system was
+required.
+
+## Claude Code governance structure — 2026-09-10
+**Suggested:** Follow a layout the lead shared — settings, rules, commands, hooks, an
+agents file, a workflow file, and a pre-commit script — built to show the idea using a
+toy example project. Apply the same idea here, adapted to what this project actually is
+(a real FastAPI + Angular app), not copied file-for-file.
+**Decision:** Followed the overall idea, but made three deliberate calls instead of just
+copying the sample as-is:
+- For automated hooks, added only one small, safe one: a reminder message (not a
+  blocker) that prints when backend files that touch data get edited, telling whoever's
+  editing to double check the cache gets cleared. Skipped building hooks that would
+  actually block actions before they happen — for a project this size, that seemed like
+  more risk of breaking things than benefit, especially since the settings file already
+  blocks the genuinely dangerous stuff.
+- The sample's idea of a "validation" folder with a rubric-based judge to grade AI
+  answers was not built. It's noted as something to consider later if AI answer quality
+  ever becomes an actual problem — right now nothing needs it, and the existing
+  verify-stack check already tests that AI answers are shaped correctly and based on
+  real data.
+- Added a pre-commit script that checks for accidentally-committed secrets, but did not
+  turn it on automatically for everyone. Each person has to opt in themselves by running
+  one git command, so nobody's workflow silently changes without them knowing.
+**Why:** The sample project is generic and built around a toy example, so copying its
+folders directly would have duplicated checks that already exist properly elsewhere in
+this codebase. Turning on hooks or automation that haven't been tested against a real,
+shared project is riskier than useful at this stage — a hook that misfires or a git
+setting that changes without warning causes more trouble than it prevents. We also kept
+CLAUDE.md as the one main source of truth instead of breaking it into several rule
+files, since it already works well and splitting it just creates more files to keep in
+sync — the new rule files add extra detail CLAUDE.md doesn't cover, and point back to it
+rather than repeating it. Afterward, ran the full live-stack check to make sure none of
+this broke anything: 57 checks passed with 0 failures hitting the backend directly, and
+55 passed with 0 failures (2 expected skips) going through the Angular app.
